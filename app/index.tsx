@@ -1,10 +1,20 @@
 import { StyleSheet, Text, View } from 'react-native';
+import { useTheme } from '../src/theme/useTheme';
 
 export default function Index() {
+  const theme = useTheme();
+
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>MediRecordatorio</Text>
-      <Text style={styles.subtitle}>Proyecto en construccion</Text>
+    <View style={[styles.container, { backgroundColor: theme.colors.bg }]}>
+      <Text style={[styles.title, { color: theme.colors.text }]}>
+        MediRecordatorio
+      </Text>
+      <Text style={[styles.subtitle, { color: theme.colors.subtext }]}>
+        Proyecto en construccion
+      </Text>
+      <Text style={[styles.hint, { color: theme.colors.subtext }]}>
+        Modo actual: {theme.isDark ? 'oscuro' : 'claro'}
+      </Text>
     </View>
   );
 }
@@ -14,16 +24,17 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#F8F7FF',
     gap: 8,
   },
   title: {
     fontSize: 28,
     fontWeight: '800',
-    color: '#1A1A2E',
   },
   subtitle: {
     fontSize: 15,
-    color: '#9E9E9E',
+  },
+  hint: {
+    fontSize: 13,
+    marginTop: 20,
   },
 });

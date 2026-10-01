@@ -151,6 +151,18 @@ export default function LoginScreen() {
             </Text>
             <Ionicons name="arrow-forward-outline" size={20} color="#FFF" />
           </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.registerLink}
+            onPress={() => router.push('/register')}
+            disabled={submitting}
+          >
+            <Text style={[styles.registerText, { color: theme.colors.subtext }]}>
+              No tenes cuenta?{' '}
+              <Text style={{ color: theme.colors.primary, fontWeight: '700' }}>
+                Registrate
+              </Text>
+            </Text>
+          </TouchableOpacity>
         </View>
       </KeyboardAvoidingView>
     </SafeAreaView>
@@ -200,4 +212,6 @@ const styles = StyleSheet.create({
   },
   disabled: { opacity: 0.6 },
   loginButtonText: { color: '#FFF', fontSize: 16, fontWeight: '700' },
+  registerLink: { alignItems: 'center', marginTop: 20 },
+  registerText: { fontSize: 14 },
 });

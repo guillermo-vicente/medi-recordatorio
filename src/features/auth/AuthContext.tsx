@@ -11,6 +11,7 @@ import React, {
 import { tokenStorage } from '../../services/secureStorage';
 import { storage } from '../../services/storage';
 import { STORAGE_KEYS } from '../../config/constants';
+import { notificationService } from '../notifications/notificationService';
 
 
 export interface AuthUser {
@@ -100,6 +101,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const signOut = useCallback(async () => {
         await tokenStorage.remove();
         await storage.remove(STORAGE_KEYS.CURRENT_USER);
+        // Cancelar cualquier notificacion pendiente del usuario que cierra sesion
+        await notificationService.cancelAll();
         setUser(null);
     }, []);
 

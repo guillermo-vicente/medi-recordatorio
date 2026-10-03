@@ -9,6 +9,7 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+import { useAuth } from '../../src/features/auth/useAuth';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
@@ -28,6 +29,7 @@ const PRESETS_PROXIMA_TOMA = [
 export default function NuevoMedicamentoScreen() {
   const router = useRouter();
   const theme = useTheme();
+  const { user } = useAuth();
   const { add } = useMedicamentos();
 
   const [nombre, setNombre] = useState('');
@@ -60,7 +62,11 @@ export default function NuevoMedicamentoScreen() {
       });
 
       await notificationService.requestPermissions();
-      await notificationService.schedule(nombre.trim(), preset.segundos);
+      await notificationService.schedule(
+        nombre.trim(),
+        preset.segundos,
+        user?.name
+      );
 
       router.back();
     } catch (e) {

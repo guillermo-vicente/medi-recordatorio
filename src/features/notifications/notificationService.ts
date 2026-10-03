@@ -1,7 +1,6 @@
-// Servicio de notificaciones locales.
-// En Expo Go Android SDK 53+, el import de expo-notifications lanza
-// una excepcion a nivel modulo. Por eso lo cargamos con require y en try/catch.
-// Las notificaciones locales siguen funcionando.
+// Servicio de notificaciones locales. Expo-notifications ya no soporta push nativas.
+// Carga de modulo con require y en try/catch para no romper la app, y
+// Uso un fallback con Alert. 
 
 import { Alert, Platform } from 'react-native';
 
@@ -11,6 +10,9 @@ try {
 } catch (e) {
   console.warn('[notifications] modulo no disponible en este entorno:', e);
 }
+
+// Guardado de IDs de los setTimeout del fallback para poder cancelarlos
+let timeoutIds: ReturnType<typeof setTimeout>[] = [];
 
 let handlerConfigurado = false;
 
@@ -58,44 +60,51 @@ export const notificationService = {
   },
 
   async schedule(
-  nombre: string,
-  segundosHastaDisparar: number
-): Promise<string | null> {
-  if (Platform.OS === 'web') return null;
+    nombre: string,
+    segundosHastaDisparar: number,
+    userName?: string
+  ): Promise<string | null> {
+    if (Platform.OS === 'web') return null;
 
-  // Intento 1: notificación real (mobile con dev build o iOS)
-  if (Notifications) {
-    try {
-      const id = await Notifications.scheduleNotificationAsync({
-        content: {
-          title: 'Recordatorio de medicamento',
-          body: `Es hora de tomar ${nombre}`,
-          sound: 'default',
-        },
-        trigger: {
-          type: Notifications.SchedulableTriggerInputTypes.TIME_INTERVAL,
-          seconds: segundosHastaDisparar,
-        },
-      });
-      return id;
-    } catch (e) {
-      console.warn('[notifications] schedule failed:', e);
+    const saludo = userName ? `${userName}, es` : 'Es';
+
+    // Intento: notificacion nativa (development build o iOS)
+    if (Notifications) {
+      try {
+        const id = await Notifications.scheduleNotificationAsync({
+          content: {
+            title: 'Recordatorio de medicamento',
+            body: `${saludo} hora de tomar ${nombre}`,
+            sound: 'default',
+          },
+          trigger: {
+            type: Notifications.SchedulableTriggerInputTypes.TIME_INTERVAL,
+            seconds: segundosHastaDisparar,
+          },
+        });
+        return id;
+      } catch (e) {
+        console.warn('[notifications] schedule failed:', e);
+      }
     }
-  }
 
-  // Fallback: simular con Alert (Expo Go Android no soporta notificaciones)
-  console.warn(
-    '[notifications] usando fallback con Alert (limitacion de Expo Go Android)'
-  );
-  setTimeout(() => {
-    Alert.alert(
-      'Recordatorio de medicamento',
-      `Es hora de tomar ${nombre}`
+    // Fallback: simular con Alert (Expo Go Android no soporta push nativas)
+    console.warn(
+      '[notifications] usando fallback con Alert (limitacion de Expo Go Android)'
     );
-  }, segundosHastaDisparar * 1000);
 
-  return null;
-},
+    const timeoutId = setTimeout(() => {
+      Alert.alert(
+        'Recordatorio de medicamento',
+        `${saludo} hora de tomar ${nombre}`
+      );
+      // Limpiar el id del array una vez disparado
+      timeoutIds = timeoutIds.filter((id) => id !== timeoutId);
+    }, segundosHastaDisparar * 1000);
+
+    timeoutIds.push(timeoutId);
+    return null;
+  },
 
   async cancel(id: string): Promise<void> {
     if (!Notifications || Platform.OS === 'web') return;
@@ -103,6 +112,22 @@ export const notificationService = {
       await Notifications.cancelScheduledNotificationAsync(id);
     } catch (e) {
       console.warn('[notifications] cancel failed:', e);
+    }
+  },
+
+  // Cancela todas las notificaciones pendientes, nativas + fallback
+  async cancelAll(): Promise<void> {
+    // Cancelar los setTimeout pendientes del fallback
+    timeoutIds.forEach((id) => clearTimeout(id));
+    timeoutIds = [];
+
+    // Cancelar las notificaciones nativas pendientes, si estan disponibles
+    if (Notifications && Platform.OS !== 'web') {
+      try {
+        await Notifications.cancelAllScheduledNotificationsAsync();
+      } catch (e) {
+        console.warn('[notifications] cancelAll failed:', e);
+      }
     }
   },
 };

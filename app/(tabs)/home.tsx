@@ -17,7 +17,7 @@ import { ESTADOS_TOMA } from '../../src/config/constants';
 import { LoadingState } from '../../src/components/ui/LoadingState';
 import { ErrorState } from '../../src/components/ui/ErrorState';
 import { EmptyState } from '../../src/components/ui/EmptyState';
-import { useRouter } from 'expo-router';
+import { useRouter, useFocusEffect } from 'expo-router'; 
 import { showConfirm } from '../../src/utils/dialogs';
 
 function getEstadoMeta(estado: Medicamento['estado']) {
@@ -35,11 +35,19 @@ export default function HomeScreen() {
         isRefreshing,
         error,
         refresh,
+        reloadSilently,
         markAsTaken,
         remove,
     } = useMedicamentos();
 
     const router = useRouter();
+
+     // recarga la lista cada vez que el Home toma foco
+    useFocusEffect(
+        useCallback(() => {
+            reloadSilently();
+        }, [reloadSilently])
+    );
 
     const handleAdd = useCallback(() => {
         router.push('/medicamento/nuevo');
@@ -47,16 +55,20 @@ export default function HomeScreen() {
 
     const handleItemPress = useCallback(
         async (item: Medicamento) => {
-            const marcarTomado = await showConfirm({
-                title: item.nombre,
-                message: `Dosis: ${item.dosis}\nFrecuencia: cada ${item.frecuenciaHoras} horas\n\n¿Marcar como tomado?`,
-                confirmText: 'Marcar tomado',
-                cancelText: 'Cerrar',
-            });
+            const yaTomado = item.estado === 'tomado';
 
-            if (marcarTomado) {
-                await markAsTaken(item.id);
-                return;
+            if (!yaTomado) {
+                const marcarTomado = await showConfirm({
+                    title: item.nombre,
+                    message: `Dosis: ${item.dosis}\nFrecuencia: cada ${item.frecuenciaHoras} horas\n\n¿Marcar como tomado?`,
+                    confirmText: 'Marcar tomado',
+                    cancelText: 'Cerrar',
+                });
+
+                if (marcarTomado) {
+                    await markAsTaken(item.id);
+                    return;
+                }
             }
 
             const eliminar = await showConfirm({

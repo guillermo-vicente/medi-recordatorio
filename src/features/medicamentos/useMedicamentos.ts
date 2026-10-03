@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Medicamento, medicamentoService } from './medicamentoService';
+import { useAuth } from '../auth/useAuth';
 
 export interface UseMedicamentosResult {
   medicamentos: Medicamento[];
@@ -7,13 +8,17 @@ export interface UseMedicamentosResult {
   isRefreshing: boolean;
   error: string | null;
   refresh: () => Promise<void>;
-  add: (data: Omit<Medicamento, 'id' | 'estado' | 'createdAt'>) => Promise<void>;
+  reloadSilently: () => Promise<void>;
+  add: (
+    data: Omit<Medicamento, 'id' | 'estado' | 'createdAt' | 'userEmail'>
+  ) => Promise<void>;
   remove: (id: string) => Promise<void>;
   markAsTaken: (id: string) => Promise<void>;
   markAsMissed: (id: string) => Promise<void>;
 }
 
 export function useMedicamentos(): UseMedicamentosResult {
+  const { user } = useAuth();
   const [medicamentos, setMedicamentos] = useState<Medicamento[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -21,12 +26,19 @@ export function useMedicamentos(): UseMedicamentosResult {
 
   const load = useCallback(
     async (mode: 'initial' | 'refresh' | 'silent' = 'initial') => {
+      // Si no hay usuario logueado, no hay nada que cargar
+      if (!user?.email) {
+        setMedicamentos([]);
+        setIsLoading(false);
+        return;
+      }
+
       if (mode === 'initial') setIsLoading(true);
       if (mode === 'refresh') setIsRefreshing(true);
       if (mode !== 'silent') setError(null);
 
       try {
-        const items = await medicamentoService.list();
+        const items = await medicamentoService.list(user.email);
         setMedicamentos(items);
       } catch (e) {
         setError(
@@ -37,7 +49,7 @@ export function useMedicamentos(): UseMedicamentosResult {
         if (mode === 'refresh') setIsRefreshing(false);
       }
     },
-    []
+    [user?.email]   // <-- clave: recarga cuando cambia el usuario
   );
 
   useEffect(() => {
@@ -48,11 +60,16 @@ export function useMedicamentos(): UseMedicamentosResult {
   const reloadSilently = useCallback(() => load('silent'), [load]);
 
   const add = useCallback(
-    async (data: Omit<Medicamento, 'id' | 'estado' | 'createdAt'>) => {
-      await medicamentoService.add(data);
+    async (
+      data: Omit<Medicamento, 'id' | 'estado' | 'createdAt' | 'userEmail'>
+    ) => {
+      if (!user?.email) {
+        throw new Error('Usuario no autenticado');
+      }
+      await medicamentoService.add(user.email, data);
       await reloadSilently();
     },
-    [reloadSilently]
+    [user?.email, reloadSilently]
   );
 
   const remove = useCallback(
@@ -85,6 +102,7 @@ export function useMedicamentos(): UseMedicamentosResult {
     isRefreshing,
     error,
     refresh,
+    reloadSilently, 
     add,
     remove,
     markAsTaken,

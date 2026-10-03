@@ -1,4 +1,6 @@
 // Operaciones CRUD de medicamentos sobre AsyncStorage.
+// Cada medicamento está asociado al email del usuario que lo creó,
+// y el servicio filtra por ese email para aislar los datos.
 
 import { storage } from '../../services/storage';
 import { STORAGE_KEYS, ESTADOS_TOMA } from '../../config/constants';
@@ -11,20 +13,32 @@ export interface Medicamento {
   proximaToma: number;
   estado: 'pendiente' | 'tomado' | 'omitido';
   createdAt: number;
+  userEmail: string;
 }
 
 export const medicamentoService = {
-  async list(): Promise<Medicamento[]> {
-    return storage.get<Medicamento[]>(STORAGE_KEYS.MEDICAMENTOS, []);
+  // Devuelve solo los medicamentos del usuario actual
+  async list(userEmail: string): Promise<Medicamento[]> {
+    const todos = await storage.get<Medicamento[]>(
+      STORAGE_KEYS.MEDICAMENTOS,
+      []
+    );
+    return todos.filter((m) => m.userEmail === userEmail);
   },
 
-  async getById(id: string): Promise<Medicamento | null> {
-    const items = await medicamentoService.list();
+  async getById(userEmail: string, id: string): Promise<Medicamento | null> {
+    const items = await medicamentoService.list(userEmail);
     return items.find((m) => m.id === id) ?? null;
   },
 
-  async add(data: Omit<Medicamento, 'id' | 'estado' | 'createdAt'>): Promise<Medicamento> {
-    const items = await medicamentoService.list();
+  async add(
+    userEmail: string,
+    data: Omit<Medicamento, 'id' | 'estado' | 'createdAt' | 'userEmail'>
+  ): Promise<Medicamento> {
+    const todos = await storage.get<Medicamento[]>(
+      STORAGE_KEYS.MEDICAMENTOS,
+      []
+    );
     const nuevo: Medicamento = {
       id: Date.now().toString(),
       nombre: data.nombre,
@@ -33,22 +47,32 @@ export const medicamentoService = {
       proximaToma: data.proximaToma,
       estado: ESTADOS_TOMA.pendiente.key,
       createdAt: Date.now(),
+      userEmail,
     };
-    await storage.set(STORAGE_KEYS.MEDICAMENTOS, [nuevo, ...items]);
+    await storage.set(STORAGE_KEYS.MEDICAMENTOS, [nuevo, ...todos]);
     return nuevo;
   },
 
+  // update y remove trabajan sobre la lista completa porque el id es único
   async update(id: string, changes: Partial<Medicamento>): Promise<void> {
-    const items = await medicamentoService.list();
-    const updated = items.map((m) => (m.id === id ? { ...m, ...changes } : m));
+    const todos = await storage.get<Medicamento[]>(
+      STORAGE_KEYS.MEDICAMENTOS,
+      []
+    );
+    const updated = todos.map((m) =>
+      m.id === id ? { ...m, ...changes } : m
+    );
     await storage.set(STORAGE_KEYS.MEDICAMENTOS, updated);
   },
 
   async remove(id: string): Promise<void> {
-    const items = await medicamentoService.list();
+    const todos = await storage.get<Medicamento[]>(
+      STORAGE_KEYS.MEDICAMENTOS,
+      []
+    );
     await storage.set(
       STORAGE_KEYS.MEDICAMENTOS,
-      items.filter((m) => m.id !== id)
+      todos.filter((m) => m.id !== id)
     );
   },
 

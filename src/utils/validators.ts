@@ -19,9 +19,9 @@ export function validateLoginInput(
   }
 
   if (!password) {
-    errors.push('La contrasena es requerida');
+    errors.push('La contraseña es requerida');
   } else if (!validatePassword(password)) {
-    errors.push('La contrasena debe tener al menos 6 caracteres');
+    errors.push('La contraseña debe tener al menos 6 caracteres');
   }
 
   return errors;
@@ -46,13 +46,13 @@ export function validateRegisterInput(
   }
 
   if (!password) {
-    errors.push('La contrasena es requerida');
+    errors.push('La contraseña es requerida');
   } else if (!validatePassword(password)) {
-    errors.push('La contrasena debe tener al menos 6 caracteres');
+    errors.push('La contraseña debe tener al menos 6 caracteres');
   }
 
   if (password !== confirmPassword) {
-    errors.push('Las contrasenas no coinciden');
+    errors.push('Las contraseñas no coinciden');
   }
 
   return errors;

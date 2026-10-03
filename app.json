@@ -3,7 +3,7 @@
     "name": "MediRecordatorio",
     "slug": "app-medicamentos",
     "version": "0.1.0",
-    "orientation": "default",
+    "orientation": "portrait",
     "userInterfaceStyle": "light",
     "ios": {
       "supportsTablet": true

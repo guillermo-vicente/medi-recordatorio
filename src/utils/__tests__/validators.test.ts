@@ -24,11 +24,11 @@ describe('validateEmail', () => {
 });
 
 describe('validatePassword', () => {
-  it('acepta una contrasena de 6 o mas caracteres', () => {
+  it('acepta una contraseña de 6 o mas caracteres', () => {
     expect(validatePassword('123456')).toBe(true);
   });
 
-  it('rechaza una contrasena de menos de 6 caracteres', () => {
+  it('rechaza una contraseña de menos de 6 caracteres', () => {
     expect(validatePassword('123')).toBe(false);
   });
 });
@@ -49,10 +49,10 @@ describe('validateLoginInput', () => {
     expect(errors).toContain('El email no tiene un formato valido');
   });
 
-  it('devuelve error cuando la contrasena es corta', () => {
+  it('devuelve error cuando la contraseña es corta', () => {
     const errors = validateLoginInput('test@mail.com', '123');
     expect(errors).toContain(
-      'La contrasena debe tener al menos 6 caracteres'
+      'La contraseña debe tener al menos 6 caracteres'
     );
   });
 
@@ -83,13 +83,13 @@ describe('validateRegisterInput', () => {
     expect(errors).toContain('El nombre es requerido');
   });
 
-  it('devuelve error cuando las contrasenas no coinciden', () => {
+  it('devuelve error cuando las contraseñas no coinciden', () => {
     const errors = validateRegisterInput(
       'Guille',
       'test@mail.com',
       '123456',
       '654321'
     );
-    expect(errors).toContain('Las contrasenas no coinciden');
+    expect(errors).toContain('Las contraseñas no coinciden');
   });
 });

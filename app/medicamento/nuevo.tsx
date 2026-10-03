@@ -19,11 +19,11 @@ import { FRECUENCIAS } from '../../src/config/constants';
 import { notificationService } from '../../src/features/notifications/notificationService';
 
 const PRESETS_PROXIMA_TOMA = [
+  { label: '15 seg', segundos: 15 },
   { label: '1 min', segundos: 60 },
   { label: '5 min', segundos: 5 * 60 },
   { label: '30 min', segundos: 30 * 60 },
   { label: '1 hora', segundos: 60 * 60 },
-  { label: '8 horas', segundos: 8 * 60 * 60 },
 ];
 
 export default function NuevoMedicamentoScreen() {
@@ -35,7 +35,7 @@ export default function NuevoMedicamentoScreen() {
   const [nombre, setNombre] = useState('');
   const [dosis, setDosis] = useState('');
   const [frecuenciaIdx, setFrecuenciaIdx] = useState(2);
-  const [presetIdx, setPresetIdx] = useState(1);
+  const [presetIdx, setPresetIdx] = useState(0);
   const [errors, setErrors] = useState<string[]>([]);
   const [submitting, setSubmitting] = useState(false);
 

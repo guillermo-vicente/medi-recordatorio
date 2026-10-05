@@ -35,7 +35,7 @@ De las 5 opciones propuestas en el parcial, elegí **Recordatorio de medicación
 ```bash
 # 1. Clonar el repositorio
 git clone https://github.com/guillermo-vicente/medi-recordatorio.git
-cd AppMedicamentos
+cd medi-recordatorio
 
 # 2. Instalar dependencias
 npm install
@@ -189,11 +189,11 @@ Duración: ~1:20 minutos. Muestra el flujo completo: login → alta de medicamen
 
 ### Navegación con Expo Router
 
-El proyecto usa expo-router, que es la capa oficial de navegación de Expo y está construida sobre React Navigation (@react-navigation/native-stack por debajo). Aporta file-based routing: cada archivo en app/ es una ruta automáticamente. Es la opción que el profesor presentó como válida en la clase 4 (Unidad 4 – Navegación), y viene preinstalada en los templates de Expo SDK 57.
+El proyecto usa expo-router, que es la capa oficial de navegación de Expo y está construida sobre React Navigation (@react-navigation/native-stack por debajo). Aporta file-based routing: cada archivo en app/ es una ruta automáticamente.
 
 ### Notificaciones locales en Expo Go Android
 
-A partir del SDK 53, Expo removió el soporte de notificaciones push nativas en Expo Go para Android (requiere un development build). El proyecto usa expo-notifications con un fallback con Alert.alert cuando el módulo nativo no está disponible, manteniendo la funcionalidad del recordatorio en Expo Go. En iOS o en un development build la notificación nativa se dispara normalmente.
+El proyecto usa expo-notifications con un fallback con Alert.alert cuando el módulo nativo no está disponible, manteniendo la funcionalidad del recordatorio en Expo Go. En iOS o en un development build la notificación nativa se dispara normalmente.
 
 ### Aislamiento de datos por usuario
 

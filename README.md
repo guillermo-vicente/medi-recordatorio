@@ -117,6 +117,36 @@ Tests:       19 passed, 19 total
 
     * Tests de componente reutilizable (EmptyState).
 
+---
+
+## Capturas
+
+### Autenticación
+
+| Login | Registro |
+|---|---|
+| ![Login](docs/01-login.png) | ![Registro](docs/02-registro.png) |
+
+### Home y alta de medicamento
+
+| Home vacío | Nuevo medicamento |
+|---|---|
+| ![Home vacío](docs/03-home-vacio.png) | ![Nuevo medicamento](docs/04-nuevo-medicamento.png) |
+
+### Notificaciones y estado de tomas
+
+| Notificación personalizada | Medicamento tomado |
+|---|---|
+| ![Notificación](docs/05-notificacion.png) | ![Home con tomado](docs/06-home-con-tomado.png) |
+
+### Eliminar y perfil
+
+| Confirmar eliminación | Perfil con modo oscuro |
+|---|---|
+| ![Eliminar](docs/07-eliminar.png) | ![Perfil](docs/08-perfil-modo-oscuro.png) |
+
+---
+
 ## Estructura del proyecto
 
 ```text
@@ -163,6 +193,8 @@ AppMedicamentos/
 └── babel.config.js               # Configuración de Babel
 ```
 
+---
+
 ## Stack y dependencias
 
 | Paquete | Versión | Para qué |
@@ -179,11 +211,15 @@ AppMedicamentos/
 | `jest-expo` | `~57.0.5` | Preset de Jest para Expo |
 | `@testing-library/react-native` | `^14.0.1` | Testing de componentes |
 
+---
+
 ## Video demo
 
-**[Ver video demo](https://drive.google.com/file/d/1vTn3hnU_MWHy48tO16m15sbtPvv4YtdI/view?usp=sharing)**
+**[Ver video demo en YouTube](https://youtube.com/shorts/JA4iC77T3zY)**
 
-Duración: ~1:20 minutos. Muestra el flujo completo: login → alta de medicamento → notificación personalizada → marcar tomado → modo oscuro.
+Duración: 1:50.
+
+Muestra el flujo completo: login → alta de medicamento → notificación personalizada → marcar tomado → modo oscuro.
 
 ## Notas técnicas
 

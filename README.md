@@ -67,6 +67,10 @@ Test Suites: 2 passed, 2 total
 Tests:       19 passed, 19 total
 ```
 
+### Captura de resultado de los tests en consola
+
+![Tests pasando](docs/test.png)
+
 ---
 
 ## Funcionalidades

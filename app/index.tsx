@@ -1,7 +1,8 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
   KeyboardAvoidingView,
   Platform,
+  ScrollView,
   StyleSheet,
   Text,
   TextInput,
@@ -25,6 +26,7 @@ export default function LoginScreen() {
   const [showPassword, setShowPassword] = useState(false);
   const [errors, setErrors] = useState<string[]>([]);
   const [submitting, setSubmitting] = useState(false);
+  const passwordInput = useRef<TextInput>(null);
 
   useEffect(() => {
     if (isAuthenticated) {
@@ -52,10 +54,13 @@ export default function LoginScreen() {
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: theme.colors.bg }]}>
-      <KeyboardAvoidingView
-        style={styles.keyboardView}
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-      >
+      <KeyboardAvoidingView style={styles.keyboardView} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
+        <ScrollView
+          contentContainerStyle={styles.scrollContent}
+          keyboardShouldPersistTaps="handled"
+          keyboardDismissMode="on-drag"
+          showsVerticalScrollIndicator={false}
+        >
         <View style={styles.header}>
           <View
             style={[
@@ -94,6 +99,8 @@ export default function LoginScreen() {
               keyboardType="email-address"
               autoCapitalize="none"
               autoCorrect={false}
+              returnKeyType="next"
+              onSubmitEditing={() => passwordInput.current?.focus()}
               editable={!submitting}
             />
           </View>
@@ -106,12 +113,15 @@ export default function LoginScreen() {
               style={styles.inputIcon}
             />
             <TextInput
+              ref={passwordInput}
               style={[styles.input, { color: theme.colors.text }]}
               placeholder="Contrasena"
               placeholderTextColor={theme.colors.subtext}
               value={password}
               onChangeText={setPassword}
               secureTextEntry={!showPassword}
+              returnKeyType="go"
+              onSubmitEditing={handleLogin}
               editable={!submitting}
             />
             <TouchableOpacity
@@ -164,6 +174,7 @@ export default function LoginScreen() {
             </Text>
           </TouchableOpacity>
         </View>
+        </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>
   );
@@ -173,10 +184,9 @@ const styles = StyleSheet.create({
   container: { flex: 1 },
   keyboardView: {
     flex: 1,
-    justifyContent: 'center',
-    paddingHorizontal: 24,
   },
-  header: { alignItems: 'center', marginBottom: 40 },
+  scrollContent: { flexGrow: 1, justifyContent: 'center', paddingHorizontal: 24, paddingVertical: 24 },
+  header: { alignItems: 'center', marginBottom: 28 },
   logoContainer: {
     width: 88,
     height: 88,

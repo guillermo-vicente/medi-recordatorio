@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import {
     KeyboardAvoidingView,
     Platform,
@@ -28,6 +28,9 @@ export default function RegisterScreen() {
     const [showPassword, setShowPassword] = useState(false);
     const [errors, setErrors] = useState<string[]>([]);
     const [submitting, setSubmitting] = useState(false);
+    const emailInput = useRef<TextInput>(null);
+    const passwordInput = useRef<TextInput>(null);
+    const confirmPasswordInput = useRef<TextInput>(null);
 
     const handleRegister = async () => {
         const validationErrors = validateRegisterInput(
@@ -56,10 +59,12 @@ export default function RegisterScreen() {
         <SafeAreaView style={[styles.container, { backgroundColor: theme.colors.bg }]}>
             <KeyboardAvoidingView
                 style={styles.keyboardView}
-                behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+                behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
             >
                 <ScrollView
                     contentContainerStyle={styles.scroll}
+                    keyboardShouldPersistTaps="handled"
+                    keyboardDismissMode="on-drag"
                     showsVerticalScrollIndicator={false}
                 >
                     <TouchableOpacity
@@ -92,6 +97,8 @@ export default function RegisterScreen() {
                                 value={name}
                                 onChangeText={setName}
                                 autoCapitalize="words"
+                                returnKeyType="next"
+                                onSubmitEditing={() => emailInput.current?.focus()}
                                 editable={!submitting}
                             />
                         </View>
@@ -104,6 +111,7 @@ export default function RegisterScreen() {
                                 style={styles.inputIcon}
                             />
                             <TextInput
+                                ref={emailInput}
                                 style={[styles.input, { color: theme.colors.text }]}
                                 placeholder="Correo electronico"
                                 placeholderTextColor={theme.colors.subtext}
@@ -112,6 +120,8 @@ export default function RegisterScreen() {
                                 keyboardType="email-address"
                                 autoCapitalize="none"
                                 autoCorrect={false}
+                                returnKeyType="next"
+                                onSubmitEditing={() => passwordInput.current?.focus()}
                                 editable={!submitting}
                             />
                         </View>
@@ -124,12 +134,15 @@ export default function RegisterScreen() {
                                 style={styles.inputIcon}
                             />
                             <TextInput
+                                ref={passwordInput}
                                 style={[styles.input, { color: theme.colors.text }]}
                                 placeholder="Contrasena (minimo 6 caracteres)"
                                 placeholderTextColor={theme.colors.subtext}
                                 value={password}
                                 onChangeText={setPassword}
                                 secureTextEntry={!showPassword}
+                                returnKeyType="next"
+                                onSubmitEditing={() => confirmPasswordInput.current?.focus()}
                                 editable={!submitting}
                             />
                             <TouchableOpacity
@@ -152,12 +165,15 @@ export default function RegisterScreen() {
                                 style={styles.inputIcon}
                             />
                             <TextInput
+                                ref={confirmPasswordInput}
                                 style={[styles.input, { color: theme.colors.text }]}
                                 placeholder="Confirmar contrasena"
                                 placeholderTextColor={theme.colors.subtext}
                                 value={confirmPassword}
                                 onChangeText={setConfirmPassword}
                                 secureTextEntry={!showPassword}
+                                returnKeyType="go"
+                                onSubmitEditing={handleRegister}
                                 editable={!submitting}
                             />
                         </View>
@@ -213,7 +229,7 @@ export default function RegisterScreen() {
 const styles = StyleSheet.create({
     container: { flex: 1 },
     keyboardView: { flex: 1 },
-    scroll: { paddingHorizontal: 24, paddingVertical: 20 },
+    scroll: { flexGrow: 1, paddingHorizontal: 24, paddingVertical: 20 },
     backBtn: { marginBottom: 16, alignSelf: 'flex-start' },
     title: { fontSize: 28, fontWeight: '800' },
     subtitle: { fontSize: 15, marginTop: 4, marginBottom: 24 },

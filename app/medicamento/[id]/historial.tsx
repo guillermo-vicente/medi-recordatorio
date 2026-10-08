@@ -7,6 +7,7 @@ import { EmptyState } from '../../../src/components/ui/EmptyState';
 import { ErrorState } from '../../../src/components/ui/ErrorState';
 import { LoadingState } from '../../../src/components/ui/LoadingState';
 import { useMedicamentos } from '../../../src/features/medicamentos/useMedicamentos';
+import { usePersonas } from '../../../src/features/personas/usePersonas';
 import { useTheme } from '../../../src/theme/useTheme';
 
 export default function HistorialMedicamentoScreen() {
@@ -14,7 +15,9 @@ export default function HistorialMedicamentoScreen() {
   const router = useRouter();
   const theme = useTheme();
   const { medicamentos, isLoading, error, refresh } = useMedicamentos();
+  const { personas } = usePersonas();
   const medicamento = medicamentos.find((item) => item.id === id);
+  const persona = personas.find((item) => item.id === medicamento?.personaId);
   const historial = useMemo(
     () => [...(medicamento?.historialTomas ?? [])].sort((a, b) => b.fecha - a.fecha),
     [medicamento?.historialTomas]
@@ -58,7 +61,7 @@ export default function HistorialMedicamentoScreen() {
         <View style={styles.heading}>
           <Text style={[styles.title, { color: theme.colors.text }]}>Historial de tomas</Text>
           <Text style={[styles.subtitle, { color: theme.colors.subtext }]} numberOfLines={1}>
-            {medicamento?.nombre ?? 'Medicamento'}
+            {medicamento ? `${persona?.nombre ?? 'Persona'} · ${medicamento.nombre}` : 'Medicamento'}
           </Text>
         </View>
       </View>

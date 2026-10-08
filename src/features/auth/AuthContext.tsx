@@ -12,6 +12,7 @@ import { tokenStorage } from '../../services/secureStorage';
 import { storage } from '../../services/storage';
 import { STORAGE_KEYS } from '../../config/constants';
 import { notificationService } from '../notifications/notificationService';
+import { cancelMedicationSchedules, ensureMedicationSchedules } from '../notifications/syncMedicationNotifications';
 
 
 export interface AuthUser {
@@ -53,6 +54,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                     null
                 );
                 if (token && storedUser) {
+                    await ensureMedicationSchedules(storedUser).catch((error) => {
+                        console.warn('[notifications] could not restore medication schedules:', error);
+                    });
                     setUser(storedUser);
                 }
             } catch (e) {
@@ -77,6 +81,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         const authUser: AuthUser = { email: found.email, name: found.name };
         await tokenStorage.set(`simulated_token_${normalized}`);
         await storage.set(STORAGE_KEYS.CURRENT_USER, authUser);
+        await ensureMedicationSchedules(authUser).catch((error) => {
+            console.warn('[notifications] could not restore medication schedules:', error);
+        });
         setUser(authUser);
     }, []);
 
@@ -100,12 +107,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
 
     const signOut = useCallback(async () => {
+        if (user?.email) {
+            await cancelMedicationSchedules(user.email).catch((error) => {
+                console.warn('[notifications] could not cancel user schedules:', error);
+            });
+        }
         await tokenStorage.remove();
         await storage.remove(STORAGE_KEYS.CURRENT_USER);
         // Cancelar cualquier notificacion pendiente del usuario que cierra sesion
         await notificationService.cancelAll();
         setUser(null);
-    }, []);
+    }, [user?.email]);
 
 
     const value = useMemo<AuthContextValue>(

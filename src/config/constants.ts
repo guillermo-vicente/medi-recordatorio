@@ -40,4 +40,5 @@ export const STORAGE_KEYS = {
   USERS: '@medicamentos:users',
   CURRENT_USER: '@medicamentos:current_user',
   MEDICAMENTOS: '@medicamentos:list',
+  PERSONAS: '@medicamentos:personas',
 } as const;

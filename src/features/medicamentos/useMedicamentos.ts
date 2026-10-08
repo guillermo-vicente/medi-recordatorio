@@ -80,7 +80,7 @@ export function useMedicamentos(): UseMedicamentosResult {
       if (!user?.email) throw new Error('Usuario no autenticado');
       const item = await medicamentoService.getById(user.email, id);
       if (!item) return;
-      if (item.notificationId) await notificationService.cancel(item.notificationId);
+      await notificationService.cancelMany([...(item.notificationIds ?? []), item.notificationId]);
       await medicamentoService.remove(user.email, id);
       await reloadSilently();
     },
@@ -103,19 +103,8 @@ export function useMedicamentos(): UseMedicamentosResult {
       if (!user?.email) throw new Error('Usuario no autenticado');
       const item = await medicamentoService.getById(user.email, id);
       if (!item) return;
-      if (item.notificationId) await notificationService.cancel(item.notificationId);
       const next = await medicamentoService.recordDose(user.email, id, estado);
-      if (next) {
-        const canNotify = !notificationService.isAvailable() || await notificationService.hasPermission();
-        if (canNotify) {
-          const notificationId = await notificationService.schedule(
-            next.nombre,
-            next.frecuenciaHoras * 60 * 60,
-            user.name
-          );
-          await medicamentoService.update(user.email, id, { notificationId: notificationId ?? undefined });
-        }
-      }
+      if (!next) return;
       await reloadSilently();
     },
     [user?.email, user?.name, reloadSilently]

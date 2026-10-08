@@ -1,7 +1,8 @@
-import { useCallback } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import {
     FlatList,
     RefreshControl,
+  ScrollView,
     StyleSheet,
     Text,
     TouchableOpacity,
@@ -19,6 +20,9 @@ import { ErrorState } from '../../src/components/ui/ErrorState';
 import { EmptyState } from '../../src/components/ui/EmptyState';
 import { useRouter, useFocusEffect } from 'expo-router'; 
 import { showConfirm } from '../../src/utils/dialogs';
+import { usePersonas } from '../../src/features/personas/usePersonas';
+import { getOwnPersonaId } from '../../src/features/personas/personaService';
+import { calcularProximaToma } from '../../src/features/medicamentos/medicamentoService';
 
 function getEstadoMeta(estado: Medicamento['estado']) {
     if (estado === ESTADOS_TOMA.tomado.key) return ESTADOS_TOMA.tomado;
@@ -36,6 +40,13 @@ function getMomentoComidaLabel(item: Medicamento): string | undefined {
     return item.momentoComida ? labels[item.momentoComida] : undefined;
 }
 
+function getHorarioResumen(item: Medicamento): string {
+    if (item.tipoHorario === 'diario' && item.horariosDiarios?.length) {
+        return `Horarios: ${item.horariosDiarios.join(' · ')}`;
+    }
+    return `Cada ${item.frecuenciaHoras} h`;
+}
+
 export default function HomeScreen() {
     const { user } = useAuth();
     const theme = useTheme();
@@ -50,6 +61,18 @@ export default function HomeScreen() {
         markAsMissed,
         remove,
     } = useMedicamentos();
+    const { personas, reload: reloadPersonas } = usePersonas();
+    const [personaActivaId, setPersonaActivaId] = useState<string | null>(null);
+
+    useEffect(() => {
+        if (!personas.length) return;
+        if (!personaActivaId || !personas.some((persona) => persona.id === personaActivaId)) {
+            setPersonaActivaId(personas[0].id);
+        }
+    }, [personas, personaActivaId]);
+
+    const personaActiva = personas.find((persona) => persona.id === personaActivaId);
+    const medicamentosPersona = medicamentos.filter((item) => item.personaId === personaActivaId);
 
     const router = useRouter();
 
@@ -57,12 +80,13 @@ export default function HomeScreen() {
     useFocusEffect(
         useCallback(() => {
             reloadSilently();
-        }, [reloadSilently])
+            void reloadPersonas();
+        }, [reloadSilently, reloadPersonas])
     );
 
     const handleAdd = useCallback(() => {
-        router.push('/medicamento/nuevo');
-    }, [router]);
+        router.push({ pathname: '/medicamento/nuevo', params: { personaId: personaActivaId ?? getOwnPersonaId(user?.email ?? '') } });
+    }, [router, personaActivaId, user?.email]);
 
     const handleMarkTaken = useCallback(async (item: Medicamento) => {
         const details = [
@@ -81,7 +105,7 @@ export default function HomeScreen() {
     const handleMarkMissed = useCallback(async (item: Medicamento) => {
         const confirmed = await showConfirm({
             title: 'Registrar toma omitida',
-            message: `¿Querés registrar como omitida la toma de ${item.nombre}? El próximo recordatorio se calculará desde ahora.`,
+            message: `¿Querés registrar como omitida la toma de ${item.nombre}? Se conservará el horario previsto del plan.`,
             confirmText: 'Registrar omitida',
             cancelText: 'Cancelar',
         });
@@ -99,6 +123,7 @@ export default function HomeScreen() {
             const ultimoRegistro = item.historialTomas?.[item.historialTomas.length - 1];
             const momentoComidaLabel = getMomentoComidaLabel(item);
             const observaciones = item.observaciones ?? item.indicaciones;
+            const proximaToma = calcularProximaToma(item);
 
             return (
                 <View
@@ -123,7 +148,7 @@ export default function HomeScreen() {
                             </View>
                         </View>
                         <Text style={[styles.cardSubtitle, { color: theme.colors.subtext }]}>
-                            {item.dosis} · cada {item.frecuenciaHoras}hs
+                            {item.dosis} · {getHorarioResumen(item)}
                         </Text>
                         {momentoComidaLabel ? (
                             <Text style={[styles.cardNote, { color: theme.colors.text }]}>
@@ -134,7 +159,7 @@ export default function HomeScreen() {
                             <Text style={[styles.cardNote, { color: theme.colors.text }]}>Observaciones: {observaciones}</Text>
                         ) : null}
                         <Text style={[styles.cardMeta, { color: theme.colors.subtext }]}>
-                            Próxima: {new Date(item.proximaToma).toLocaleString()}
+                            Próximo aviso: {new Date(proximaToma).toLocaleString()}
                         </Text>
                         {ultimoRegistro || item.ultimaToma ? (
                             <Text style={[styles.cardMeta, { color: theme.colors.subtext }]}>
@@ -225,12 +250,12 @@ export default function HomeScreen() {
 
         return (
             <FlatList
-                data={medicamentos}
+                data={medicamentosPersona}
                 keyExtractor={(item) => item.id}
                 renderItem={renderItem}
                 contentContainerStyle={[
                     styles.listContent,
-                    medicamentos.length === 0 && styles.listEmpty,
+                    medicamentosPersona.length === 0 && styles.listEmpty,
                 ]}
                 refreshControl={
                     <RefreshControl
@@ -248,7 +273,7 @@ export default function HomeScreen() {
                         subtitleColor={theme.colors.subtext}
                         emoji="💊"
                         title="Sin medicamentos"
-                        subtitle="Tocá el botón + para agregar tu primer medicamento"
+                        subtitle={`Tocá el botón + para agregar un medicamento${personaActiva ? ` para ${personaActiva.nombre}` : ''}`}
                     />
                 }
                 showsVerticalScrollIndicator={false}
@@ -272,8 +297,47 @@ export default function HomeScreen() {
                     </View>
                 </View>
                 <Text style={styles.headerCaption}>
-                    {medicamentos.length} {medicamentos.length === 1 ? 'medicamento' : 'medicamentos'} en seguimiento
+            {personaActiva?.nombre ?? 'Cargando ficha'} · {medicamentosPersona.length} {medicamentosPersona.length === 1 ? 'medicamento' : 'medicamentos'}
                 </Text>
+            </View>
+
+            <View style={styles.peopleSelector}>
+                <View style={styles.peopleSelectorHeader}>
+                    <Text style={[styles.peopleSelectorLabel, { color: theme.colors.subtext }]}>PERSONA</Text>
+                    <TouchableOpacity
+                        onPress={() => router.push('../personas')}
+                        accessibilityRole="button"
+                        accessibilityLabel="Administrar personas"
+                    >
+                        <Text style={[styles.managePeopleText, { color: theme.colors.primary }]}>Administrar</Text>
+                    </TouchableOpacity>
+                </View>
+                <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.peopleRow}>
+                    {personas.map((persona) => {
+                        const selected = persona.id === personaActivaId;
+                        return (
+                            <TouchableOpacity
+                                key={persona.id}
+                                style={[styles.personChip, { borderColor: selected ? theme.colors.primary : theme.colors.border, backgroundColor: selected ? theme.colors.primary : theme.colors.card }]}
+                                onPress={() => setPersonaActivaId(persona.id)}
+                                accessibilityRole="radio"
+                                accessibilityLabel={`Ver medicamentos de ${persona.nombre}`}
+                                accessibilityState={{ checked: selected }}
+                            >
+                                <Text style={[styles.personChipText, { color: selected ? theme.colors.onPrimary : theme.colors.text }]}>{persona.nombre}</Text>
+                            </TouchableOpacity>
+                        );
+                    })}
+                    <TouchableOpacity
+                        style={[styles.personChip, { borderColor: theme.colors.border, backgroundColor: theme.colors.card }]}
+                        onPress={() => router.push('../personas')}
+                        accessibilityRole="button"
+                        accessibilityLabel="Agregar persona"
+                    >
+                        <Ionicons name="add" size={17} color={theme.colors.primary} />
+                        <Text style={[styles.personChipText, { color: theme.colors.primary }]}>Agregar</Text>
+                    </TouchableOpacity>
+                </ScrollView>
             </View>
 
             {renderContent()}
@@ -308,6 +372,13 @@ const styles = StyleSheet.create({
     title: { fontSize: 24, fontWeight: '800', color: '#FFFFFF', marginTop: 5 },
     headerCaption: { color: 'rgba(255,255,255,0.86)', fontSize: 15, marginTop: 12 },
     headerIcon: { width: 48, height: 48, borderRadius: 16, backgroundColor: 'rgba(255,255,255,0.14)', alignItems: 'center', justifyContent: 'center' },
+    peopleSelector: { paddingHorizontal: 20, marginBottom: 10 },
+    peopleSelectorHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 7 },
+    peopleSelectorLabel: { fontSize: 12, fontWeight: '700', letterSpacing: 1 },
+    managePeopleText: { fontSize: 14, fontWeight: '700', paddingVertical: 4 },
+    peopleRow: { gap: 8, paddingBottom: 2 },
+    personChip: { minHeight: 44, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 5, paddingHorizontal: 14, borderWidth: 1, borderRadius: 13 },
+    personChipText: { fontSize: 15, fontWeight: '600' },
     listContent: {
         paddingHorizontal: 20,
         paddingBottom: 100,

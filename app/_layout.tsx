@@ -4,6 +4,9 @@ import { LogBox } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { AppThemeProvider, useAppTheme } from '../src/theme/ThemeContext';
 import { AuthProvider } from '../src/features/auth/AuthContext';
+import { notificationService } from '../src/features/notifications/notificationService';
+
+notificationService.setup();
 
 // Silenciar los warnings de Expo Go Android.
 // El servicio usa un fallback con Alert que sigue funcionando.

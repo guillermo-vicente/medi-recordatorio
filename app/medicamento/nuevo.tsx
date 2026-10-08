@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import {
   KeyboardAvoidingView,
   Platform,
@@ -6,45 +6,63 @@ import {
   StyleSheet,
   Text,
   TextInput,
+  Switch,
   TouchableOpacity,
   View,
 } from 'react-native';
 import { useAuth } from '../../src/features/auth/useAuth';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 import { useTheme } from '../../src/theme/useTheme';
 import { useMedicamentos } from '../../src/features/medicamentos/useMedicamentos';
+import { calcularProximaTomaDiaria } from '../../src/features/medicamentos/medicamentoService';
 import type { Medicamento } from '../../src/features/medicamentos/medicamentoService';
+import { getOwnPersonaId } from '../../src/features/personas/personaService';
+import { usePersonas } from '../../src/features/personas/usePersonas';
 import { FRECUENCIAS } from '../../src/config/constants';
 import { notificationService } from '../../src/features/notifications/notificationService';
 import { showAlert } from '../../src/utils/dialogs';
 
-const PRESETS_PROXIMA_TOMA = [
-  { label: '1 hora', segundos: 60 * 60, esPrueba: false },
-  { label: '4 horas', segundos: 4 * 60 * 60, esPrueba: false },
-  { label: '8 horas', segundos: 8 * 60 * 60, esPrueba: false },
-  { label: '12 horas', segundos: 12 * 60 * 60, esPrueba: false },
-  { label: '24 horas', segundos: 24 * 60 * 60, esPrueba: false },
-  { label: 'Prueba 15 s', segundos: 15, esPrueba: true },
-];
+function parseHorariosDiarios(input: string): { horarios: string[]; error?: string } {
+  const values = input.split(/[\n,;]/).map((item) => item.trim()).filter(Boolean);
+  if (!values.length) return { horarios: [], error: 'Agregá al menos un horario diario.' };
+  const normalized: string[] = [];
+  for (const value of values) {
+    const match = value.match(/^(\d{1,2}):(\d{2})$/);
+    if (!match) return { horarios: [], error: `Revisá el horario "${value}". Usá el formato HH:MM.` };
+    const hour = Number(match[1]);
+    const minute = Number(match[2]);
+    if (hour > 23 || minute > 59) return { horarios: [], error: `El horario "${value}" no es válido.` };
+    const time = `${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}`;
+    if (normalized.includes(time)) return { horarios: [], error: `El horario ${time} está repetido.` };
+    normalized.push(time);
+  }
+  return { horarios: normalized.sort() };
+}
 
 export default function NuevoMedicamentoScreen() {
   const router = useRouter();
-  const { id } = useLocalSearchParams<{ id?: string }>();
+  const { id, personaId: personaIdParam } = useLocalSearchParams<{ id?: string; personaId?: string }>();
   const theme = useTheme();
   const { user } = useAuth();
   const { add, update, medicamentos } = useMedicamentos();
+  const { personas, reload: reloadPersonas } = usePersonas();
 
   const [nombre, setNombre] = useState('');
   const [dosis, setDosis] = useState('');
   const [momentoComida, setMomentoComida] = useState<Medicamento['momentoComida']>();
   const [observaciones, setObservaciones] = useState('');
+  const [personaId, setPersonaId] = useState('');
   const [frecuenciaIdx, setFrecuenciaIdx] = useState(2);
-  const [presetIdx, setPresetIdx] = useState(0);
+  const [tipoHorario, setTipoHorario] = useState<'intervalo' | 'diario'>('intervalo');
+  const [horariosTexto, setHorariosTexto] = useState('');
+  const [avisoPrueba, setAvisoPrueba] = useState(false);
   const [errors, setErrors] = useState<string[]>([]);
   const [submitting, setSubmitting] = useState(false);
   const editing = Boolean(id);
+
+  useFocusEffect(useCallback(() => { void reloadPersonas(); }, [reloadPersonas]));
 
   useEffect(() => {
     const item = medicamentos.find((med) => med.id === id);
@@ -53,14 +71,26 @@ export default function NuevoMedicamentoScreen() {
     setDosis(item.dosis);
     setMomentoComida(item.momentoComida);
     setObservaciones(item.observaciones ?? item.indicaciones ?? '');
+    setPersonaId(item.personaId ?? getOwnPersonaId(user?.email ?? ''));
+    setTipoHorario(item.tipoHorario ?? 'intervalo');
+    setHorariosTexto(item.horariosDiarios?.join(', ') ?? '');
     const idx = FRECUENCIAS.findIndex((frecuencia) => frecuencia.horas === item.frecuenciaHoras);
     if (idx >= 0) setFrecuenciaIdx(idx);
-  }, [id, medicamentos]);
+  }, [id, medicamentos, user?.email]);
+
+  useEffect(() => {
+    if (!editing) setPersonaId(personaIdParam ?? (user?.email ? getOwnPersonaId(user.email) : ''));
+  }, [editing, personaIdParam, user?.email]);
 
   const handleSave = async () => {
     const errs: string[] = [];
     if (!nombre.trim()) errs.push('El nombre es requerido');
     if (!dosis.trim()) errs.push('La dosis es requerida');
+    if (!personaId) errs.push('Seleccioná una persona para esta ficha.');
+    const parsedSchedule = tipoHorario === 'diario'
+      ? parseHorariosDiarios(horariosTexto)
+      : { horarios: [] as string[] };
+    if (parsedSchedule.error) errs.push(parsedSchedule.error);
     if (errs.length > 0) {
       setErrors(errs);
       return;
@@ -69,36 +99,45 @@ export default function NuevoMedicamentoScreen() {
     setSubmitting(true);
     try {
       const frecuencia = FRECUENCIAS[frecuenciaIdx];
-      const preset = PRESETS_PROXIMA_TOMA[presetIdx];
-      const proximaToma = editing
-        ? Date.now() + FRECUENCIAS[frecuenciaIdx].horas * 60 * 60 * 1000
-        : Date.now() + preset.segundos * 1000;
+      const now = Date.now();
+      const horariosDiarios = tipoHorario === 'diario' ? parsedSchedule.horarios : undefined;
+      const proximaToma = tipoHorario === 'diario'
+        ? calcularProximaTomaDiaria(horariosDiarios ?? [], now)
+        : now + frecuencia.horas * 60 * 60 * 1000;
       const data = {
         nombre: nombre.trim(),
         dosis: dosis.trim(),
         momentoComida,
         observaciones: observaciones.trim(),
+        personaId,
+        tipoHorario,
+        horariosDiarios,
+        inicioHorario: tipoHorario === 'intervalo' ? now : undefined,
         frecuenciaHoras: frecuencia.horas,
         proximaToma,
         indicaciones: undefined,
+        notificationIds: [] as string[],
+        notificationId: undefined,
       };
       let itemId = id;
-      let previousNotificationId: string | undefined;
+      const existing = editing ? medicamentos.find((med) => med.id === id) : undefined;
       if (editing) {
-        const existing = medicamentos.find((med) => med.id === id);
-        previousNotificationId = existing?.notificationId;
-        await update(id!, { ...data, estado: 'pendiente', notificationId: undefined });
+        await update(id!, { ...data, estado: 'pendiente' });
       } else {
         const created = await add(data);
         itemId = created.id;
       }
-      if (previousNotificationId) await notificationService.cancel(previousNotificationId);
+      await notificationService.cancelMany([...(existing?.notificationIds ?? []), existing?.notificationId]);
       const allowed = await notificationService.requestPermissions();
+      const scheduledIds: string[] = [];
       if (allowed || !notificationService.isAvailable()) {
-        const notificationId = await notificationService.schedule(
-          nombre.trim(), editing ? frecuencia.horas * 60 * 60 : preset.segundos, user?.name
-        );
-        if (itemId) await update(itemId, { notificationId: notificationId ?? undefined });
+        const personaNombre = personas.find((persona) => persona.id === personaId)?.nombre;
+        scheduledIds.push(...await notificationService.schedulePlan(data, personaNombre));
+        if (avisoPrueba) {
+          const testId = await notificationService.schedule(nombre.trim(), 15, personaNombre);
+          if (testId) scheduledIds.push(testId);
+        }
+        if (itemId) await update(itemId, { notificationIds: scheduledIds, notificationId: undefined });
       } else {
         showAlert('Notificaciones desactivadas', 'El medicamento se guardó, pero no recibirás avisos hasta habilitar las notificaciones en la configuración del dispositivo.');
       }
@@ -184,6 +223,35 @@ export default function NuevoMedicamentoScreen() {
               />
             </View>
 
+            <Text style={[styles.label, { color: theme.colors.subtext }]}>Persona</Text>
+            <View style={styles.chipsRow}>
+              {personas.map((persona) => {
+                const selected = personaId === persona.id;
+                return (
+                  <TouchableOpacity
+                    key={persona.id}
+                    style={[styles.chip, { borderColor: selected ? theme.colors.primary : theme.colors.border, backgroundColor: selected ? theme.colors.primary : 'transparent' }]}
+                    onPress={() => setPersonaId(persona.id)}
+                    disabled={submitting}
+                    accessibilityRole="radio"
+                    accessibilityLabel={`Medicamento para ${persona.nombre}`}
+                    accessibilityState={{ checked: selected }}
+                  >
+                    <Text style={[styles.chipText, { color: selected ? theme.colors.onPrimary : theme.colors.text }]}>{persona.nombre}</Text>
+                  </TouchableOpacity>
+                );
+              })}
+              <TouchableOpacity
+                style={[styles.chip, { borderColor: theme.colors.border }]}
+                onPress={() => router.push('../personas')}
+                disabled={submitting}
+                accessibilityRole="button"
+                accessibilityLabel="Administrar personas"
+              >
+                <Text style={[styles.chipText, { color: theme.colors.primary }]}>+ Persona</Text>
+              </TouchableOpacity>
+            </View>
+
             <Text style={[styles.label, { color: theme.colors.subtext }]}>Momento indicado respecto de la comida</Text>
             <Text style={[styles.helperText, { color: theme.colors.subtext }]}>Registrá lo que indicó el profesional de salud.</Text>
             <View style={styles.chipsRow}>
@@ -203,7 +271,7 @@ export default function NuevoMedicamentoScreen() {
                     accessibilityRole="radio"
                     accessibilityState={{ checked: selected }}
                   >
-                    <Text style={[styles.chipText, { color: selected ? '#FFF' : theme.colors.text }]}>{option.label}</Text>
+                    <Text style={[styles.chipText, { color: selected ? theme.colors.onPrimary : theme.colors.text }]}>{option.label}</Text>
                   </TouchableOpacity>
                 );
               })}
@@ -223,83 +291,81 @@ export default function NuevoMedicamentoScreen() {
               accessibilityLabel="Observaciones del medicamento"
             />
 
-            <Text style={[styles.label, { color: theme.colors.subtext }]}>
-              Frecuencia
-            </Text>
+            <Text style={[styles.label, { color: theme.colors.subtext }]}>Tipo de horario</Text>
             <View style={styles.chipsRow}>
-              {FRECUENCIAS.map((f, i) => (
-                <TouchableOpacity
-                  key={f.label}
-                  style={[
-                    styles.chip,
-                    {
-                      borderColor: theme.colors.border,
-                      backgroundColor:
-                        frecuenciaIdx === i ? theme.colors.primary : 'transparent',
-                    },
-                  ]}
-                  onPress={() => setFrecuenciaIdx(i)}
-                  disabled={submitting}
-                  accessibilityRole="radio"
-                  accessibilityLabel={`Cada ${f.horas} horas`}
-                  accessibilityState={{ checked: frecuenciaIdx === i }}
-                >
-                  <Text
-                    style={[
-                      styles.chipText,
-                      {
-                        color:
-                          frecuenciaIdx === i ? '#FFF' : theme.colors.text,
-                      },
-                    ]}
+              {([
+                { value: 'intervalo', label: 'Cada ciertas horas' },
+                { value: 'diario', label: 'Horarios diarios' },
+              ] as const).map((option) => {
+                const selected = tipoHorario === option.value;
+                return (
+                  <TouchableOpacity
+                    key={option.value}
+                    style={[styles.chip, { borderColor: selected ? theme.colors.primary : theme.colors.border, backgroundColor: selected ? theme.colors.primary : 'transparent' }]}
+                    onPress={() => setTipoHorario(option.value)}
+                    disabled={submitting}
+                    accessibilityRole="radio"
+                    accessibilityState={{ checked: selected }}
                   >
-                    {f.horas}h
-                  </Text>
-                </TouchableOpacity>
-              ))}
+                    <Text style={[styles.chipText, { color: selected ? theme.colors.onPrimary : theme.colors.text }]}>{option.label}</Text>
+                  </TouchableOpacity>
+                );
+              })}
             </View>
 
-            <Text style={[styles.label, { color: theme.colors.subtext }]}>
-              Próxima toma (recibirás la notificación)
-            </Text>
-            <View style={styles.chipsRow}>
-              {(editing ? FRECUENCIAS.map((f) => ({ label: f.label, segundos: f.horas * 3600 })) : PRESETS_PROXIMA_TOMA).map((p, i) => (
-                <TouchableOpacity
-                  key={p.label}
-                  style={[
-                    styles.chip,
-                    {
-                      borderColor: theme.colors.border,
-                      backgroundColor:
-                        (editing ? frecuenciaIdx : presetIdx) === i ? theme.colors.primary : 'transparent',
-                    },
-                  ]}
-                  onPress={() => editing ? setFrecuenciaIdx(i) : setPresetIdx(i)}
-                  disabled={submitting}
-                  accessibilityRole="radio"
-                  accessibilityLabel={editing ? `Próxima toma según ${p.label}` : `Próxima toma: ${p.label}`}
-                  accessibilityState={{ checked: (editing ? frecuenciaIdx : presetIdx) === i }}
-                >
-                  <Text
-                    style={[
-                      styles.chipText,
-                      { color: (editing ? frecuenciaIdx : presetIdx) === i ? '#FFF' : theme.colors.text },
-                    ]}
-                  >
-                    {p.label}
-                  </Text>
-                </TouchableOpacity>
-              ))}
-            </View>
+            {tipoHorario === 'intervalo' ? (
+              <>
+                <Text style={[styles.label, { color: theme.colors.subtext }]}>Intervalo indicado</Text>
+                <View style={styles.chipsRow}>
+                  {FRECUENCIAS.map((f, i) => {
+                    const selected = frecuenciaIdx === i;
+                    return (
+                      <TouchableOpacity
+                        key={f.label}
+                        style={[styles.chip, { borderColor: selected ? theme.colors.primary : theme.colors.border, backgroundColor: selected ? theme.colors.primary : 'transparent' }]}
+                        onPress={() => setFrecuenciaIdx(i)}
+                        disabled={submitting}
+                        accessibilityRole="radio"
+                        accessibilityLabel={`Cada ${f.horas} horas`}
+                        accessibilityState={{ checked: selected }}
+                      >
+                        <Text style={[styles.chipText, { color: selected ? theme.colors.onPrimary : theme.colors.text }]}>{f.horas} h</Text>
+                      </TouchableOpacity>
+                    );
+                  })}
+                </View>
+                <Text style={[styles.helperText, { color: theme.colors.subtext }]}>El recordatorio se repite desde que guardás este plan.</Text>
+              </>
+            ) : (
+              <>
+                <Text style={[styles.label, { color: theme.colors.subtext }]}>Horarios indicados (hora local)</Text>
+                <TextInput
+                  style={[styles.notesInput, styles.scheduleInput, { color: theme.colors.text, backgroundColor: theme.colors.bg, borderColor: theme.colors.border }]}
+                  value={horariosTexto}
+                  onChangeText={setHorariosTexto}
+                  placeholder="08:00, 14:00, 20:00"
+                  placeholderTextColor={theme.colors.subtext}
+                  editable={!submitting}
+                  accessibilityLabel="Horarios diarios, separados por comas"
+                />
+                <Text style={[styles.helperText, { color: theme.colors.subtext }]}>Ingresá los horarios que te indicaron, separados por comas. Por ejemplo: 08:00, 14:00.</Text>
+              </>
+            )}
 
-            {!editing && PRESETS_PROXIMA_TOMA[presetIdx]?.esPrueba ? (
-              <View style={[styles.testNote, { backgroundColor: `${theme.colors.primary}12` }]}>
-                <Ionicons name="flask-outline" size={17} color={theme.colors.primary} />
-                <Text style={[styles.testNoteText, { color: theme.colors.text }]}>
-                  Modo de prueba: el aviso llega en 15 segundos. La frecuencia elegida se mantiene para las tomas siguientes.
-                </Text>
+            <View style={[styles.testToggle, { borderColor: theme.colors.border }]}>
+              <View style={styles.testToggleText}>
+                <Text style={[styles.testToggleTitle, { color: theme.colors.text }]}>Aviso de prueba en 15 segundos</Text>
+                <Text style={[styles.helperText, { color: theme.colors.subtext }]}>Envía un aviso extra para probar; no modifica el horario de este plan.</Text>
               </View>
-            ) : null}
+              <Switch
+                value={avisoPrueba}
+                onValueChange={setAvisoPrueba}
+                trackColor={{ false: theme.colors.border, true: theme.colors.primary }}
+                disabled={submitting}
+                accessibilityLabel="Enviar un aviso de prueba en 15 segundos"
+                accessibilityState={{ checked: avisoPrueba }}
+              />
+            </View>
 
             {errors.length > 0 && (
               <View style={styles.errorContainer}>
@@ -379,9 +445,11 @@ const styles = StyleSheet.create({
   },
   chipText: { fontSize: 15, fontWeight: '600' },
   notesInput: { minHeight: 96, borderWidth: 1, borderRadius: 14, padding: 14, fontSize: 16 },
+  scheduleInput: { minHeight: 52 },
   helperText: { fontSize: 14, lineHeight: 20, marginTop: -4 },
-  testNote: { flexDirection: 'row', alignItems: 'flex-start', gap: 8, borderRadius: 12, padding: 12, marginBottom: 8 },
-  testNoteText: { flex: 1, fontSize: 12, lineHeight: 17 },
+  testToggle: { flexDirection: 'row', alignItems: 'center', gap: 12, borderWidth: 1, borderRadius: 14, padding: 14, marginTop: 8 },
+  testToggleText: { flex: 1, gap: 4 },
+  testToggleTitle: { fontSize: 15, fontWeight: '700' },
   errorContainer: { marginTop: 8 },
   errorText: { fontSize: 13, fontWeight: '500', marginBottom: 4 },
   saveBtn: {

@@ -11,6 +11,9 @@ export interface Medicamento {
   dosis: string;
   frecuenciaHoras: number;
   proximaToma: number;
+  momentoComida?: 'antes' | 'durante' | 'despues' | 'sin_indicar';
+  observaciones?: string;
+  /** Compatibilidad con registros creados antes de separar las indicaciones. */
   indicaciones?: string;
   notificationId?: string;
   ultimaToma?: number;
@@ -49,6 +52,8 @@ export const medicamentoService = {
       dosis: data.dosis,
       frecuenciaHoras: data.frecuenciaHoras,
       proximaToma: data.proximaToma,
+      momentoComida: data.momentoComida,
+      observaciones: data.observaciones,
       indicaciones: data.indicaciones,
       estado: ESTADOS_TOMA.pendiente.key,
       createdAt: Date.now(),

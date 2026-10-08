@@ -9,6 +9,7 @@ export interface AppTheme {
     subtext: string;
     border: string;
     primary: string;
+    onPrimary: string;
     danger: string;
     warning: string;
     success: string;
@@ -28,11 +29,12 @@ export function useTheme(): AppTheme {
       text: isDark ? '#EFF8F6' : '#183A40',
       subtext: isDark ? '#A0BCB8' : '#668087',
       border: isDark ? '#2D4C50' : '#DDEAE7',
-      primary: isDark ? '#55C7B3' : '#148A83',
+      primary: isDark ? '#55C7B3' : '#0F766E',
+      onPrimary: isDark ? '#102326' : '#FFFFFF',
       danger: isDark ? '#FF858B' : '#C84C59',
       warning: isDark ? '#F3C969' : '#B7791F',
       success: isDark ? '#66C99E' : '#27866D',
-      banner: isDark ? '#214E4A' : '#148A83',
+      banner: isDark ? '#214E4A' : '#0F766E',
       overlay: 'rgba(0,0,0,0.4)',
     },
   };

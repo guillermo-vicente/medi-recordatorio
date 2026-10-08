@@ -71,6 +71,8 @@ export default function RegisterScreen() {
                         style={styles.backBtn}
                         onPress={() => router.back()}
                         disabled={submitting}
+                        accessibilityRole="button"
+                        accessibilityLabel="Volver"
                     >
                         <Ionicons name="arrow-back" size={24} color={theme.colors.text} />
                     </TouchableOpacity>
@@ -100,6 +102,7 @@ export default function RegisterScreen() {
                                 returnKeyType="next"
                                 onSubmitEditing={() => emailInput.current?.focus()}
                                 editable={!submitting}
+                                accessibilityLabel="Nombre"
                             />
                         </View>
 
@@ -123,6 +126,7 @@ export default function RegisterScreen() {
                                 returnKeyType="next"
                                 onSubmitEditing={() => passwordInput.current?.focus()}
                                 editable={!submitting}
+                                accessibilityLabel="Correo electrónico"
                             />
                         </View>
 
@@ -144,10 +148,13 @@ export default function RegisterScreen() {
                                 returnKeyType="next"
                                 onSubmitEditing={() => confirmPasswordInput.current?.focus()}
                                 editable={!submitting}
+                                accessibilityLabel="Contraseña"
                             />
                             <TouchableOpacity
                                 onPress={() => setShowPassword((v) => !v)}
                                 hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                                accessibilityRole="button"
+                                accessibilityLabel={showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'}
                             >
                                 <Ionicons
                                     name={showPassword ? 'eye-outline' : 'eye-off-outline'}
@@ -175,6 +182,7 @@ export default function RegisterScreen() {
                                 returnKeyType="go"
                                 onSubmitEditing={handleRegister}
                                 editable={!submitting}
+                                accessibilityLabel="Confirmar contraseña"
                             />
                         </View>
 
@@ -200,17 +208,19 @@ export default function RegisterScreen() {
                             onPress={handleRegister}
                             activeOpacity={0.8}
                             disabled={submitting}
+                            accessibilityRole="button"
                         >
-                            <Text style={styles.registerButtonText}>
+                            <Text style={[styles.registerButtonText, { color: theme.colors.onPrimary }]}>
                                 {submitting ? 'Creando cuenta...' : 'Crear cuenta'}
                             </Text>
-                            <Ionicons name="checkmark-outline" size={20} color="#FFF" />
+                            <Ionicons name="checkmark-outline" size={20} color={theme.colors.onPrimary} />
                         </TouchableOpacity>
 
                         <TouchableOpacity
                             style={styles.loginLink}
                             onPress={() => router.back()}
                             disabled={submitting}
+                            accessibilityRole="button"
                         >
                             <Text style={[styles.loginText, { color: theme.colors.subtext }]}>
                                 Ya tenes cuenta?{' '}
@@ -230,7 +240,7 @@ const styles = StyleSheet.create({
     container: { flex: 1 },
     keyboardView: { flex: 1 },
     scroll: { flexGrow: 1, paddingHorizontal: 24, paddingVertical: 20 },
-    backBtn: { marginBottom: 16, alignSelf: 'flex-start' },
+    backBtn: { minWidth: 44, minHeight: 44, marginBottom: 16, alignSelf: 'flex-start', justifyContent: 'center' },
     title: { fontSize: 28, fontWeight: '800', letterSpacing: -0.5 },
     subtitle: { fontSize: 15, marginTop: 4, marginBottom: 24 },
     formCard: { borderRadius: 22, padding: 22, borderWidth: 1 },
@@ -257,7 +267,7 @@ const styles = StyleSheet.create({
         gap: 8,
     },
     disabled: { opacity: 0.6 },
-    registerButtonText: { color: '#FFF', fontSize: 16, fontWeight: '700' },
+    registerButtonText: { fontSize: 16, fontWeight: '700' },
     loginLink: { alignItems: 'center', marginTop: 20 },
     loginText: { fontSize: 14 },
 });

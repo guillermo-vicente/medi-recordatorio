@@ -16,7 +16,7 @@ export function EmptyState({
   title,
   subtitle,
   icon,
-  color = '#148A83',
+  color = '#0F766E',
   titleColor = '#183A40',
   subtitleColor = '#668087',
 }: Props) {

@@ -93,20 +93,20 @@ Tests:       19 passed, 19 total
 
 ### Evolución posterior al primer parcial
 
-- Cada medicamento admite indicaciones opcionales para la persona que lo toma o quien la cuida, y se puede editar sin volver a crearlo.
-- Las tomas se registran como realizadas u omitidas, con fecha. La pantalla muestra el registro más reciente y conserva los 100 eventos más recientes por medicamento.
+- Cada medicamento permite registrar el momento indicado respecto de las comidas (antes, durante, después o sin indicar) y observaciones opcionales. Las notas anteriores se conservan como observaciones al editar.
+- Las tomas se registran como realizadas u omitidas, con fecha. La pantalla muestra el registro más reciente, conserva los 100 eventos más recientes por medicamento y permite consultar el historial ordenado por fecha.
 - Al registrar una toma realizada u omitida, se calcula la siguiente fecha desde ese momento y se programa el recordatorio según la frecuencia configurada.
 - Al crear un medicamento se puede elegir «Prueba 15 s» para comprobar rápidamente el aviso; esta opción solo adelanta la primera notificación y no cambia la frecuencia de las tomas siguientes.
 - Al editar o eliminar un medicamento, se actualiza o cancela su notificación pendiente cuando la plataforma lo permite.
 - Login y registro se desplazan con el teclado abierto. En Android se configura el ajuste de la ventana para mantener visibles los campos.
-- La interfaz usa una paleta verde azulada y menta, tarjetas más claras y componentes coherentes entre los temas claro y oscuro.
+- La interfaz usa una paleta verde azulada y menta, tarjetas más claras y componentes coherentes entre los temas claro y oscuro. Se ampliaron textos y áreas táctiles y se agregaron etiquetas para lectores de pantalla en controles principales.
 
 ### Alcance y limitaciones del prototipo
 
 - Las cuentas y los medicamentos se guardan localmente. El modo cuidador funciona en la misma cuenta y dispositivo; todavía no hay perfiles de cuidador ni sincronización entre dispositivos.
 - La autenticación es demostrativa: no existe un servidor y el token es simulado. Las contraseñas se guardan sin cifrar en AsyncStorage; no usar datos reales de salud con este prototipo.
 - Si el permiso de notificaciones se deniega, el medicamento se guarda pero no se programa el aviso. El fallback de Expo Go usa un temporizador local y no es fiable si se cierra la app.
-- Las indicaciones son notas ingresadas por el usuario; la app no recomienda ni valida instrucciones médicas.
+- El momento de comida y las observaciones son datos ingresados por el usuario a partir de sus indicaciones; la app no recomienda ni valida instrucciones médicas.
 
 
 ### Autenticación local

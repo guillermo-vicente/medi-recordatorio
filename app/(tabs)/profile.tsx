@@ -81,6 +81,8 @@ export default function ProfileScreen() {
               value={isDark}
               onValueChange={toggleTheme}
               trackColor={{ false: '#E0E0E0', true: theme.colors.primary }}
+              accessibilityLabel="Activar o desactivar el modo oscuro"
+              accessibilityState={{ checked: isDark }}
             />
           </View>
         </View>
@@ -95,6 +97,8 @@ export default function ProfileScreen() {
           ]}
           onPress={handleLogout}
           activeOpacity={0.8}
+          accessibilityRole="button"
+          accessibilityLabel="Cerrar sesión"
         >
           <Ionicons name="log-out-outline" size={20} color={theme.colors.danger} />
           <Text style={[styles.logoutText, { color: theme.colors.danger }]}>

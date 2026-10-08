@@ -68,7 +68,7 @@ export default function LoginScreen() {
               { backgroundColor: theme.colors.primary },
             ]}
           >
-            <Ionicons name="medkit-outline" size={48} color="#FFF" />
+            <Ionicons name="medkit-outline" size={48} color={theme.colors.onPrimary} />
           </View>
           <Text style={[styles.title, { color: theme.colors.text }]}>
             MediRecordatorio
@@ -102,6 +102,7 @@ export default function LoginScreen() {
               returnKeyType="next"
               onSubmitEditing={() => passwordInput.current?.focus()}
               editable={!submitting}
+              accessibilityLabel="Correo electrónico"
             />
           </View>
 
@@ -123,10 +124,13 @@ export default function LoginScreen() {
               returnKeyType="go"
               onSubmitEditing={handleLogin}
               editable={!submitting}
+              accessibilityLabel="Contraseña"
             />
             <TouchableOpacity
               onPress={() => setShowPassword((v) => !v)}
               hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+              accessibilityRole="button"
+              accessibilityLabel={showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'}
             >
               <Ionicons
                 name={showPassword ? 'eye-outline' : 'eye-off-outline'}
@@ -155,16 +159,18 @@ export default function LoginScreen() {
             onPress={handleLogin}
             activeOpacity={0.8}
             disabled={submitting}
+            accessibilityRole="button"
           >
-            <Text style={styles.loginButtonText}>
+            <Text style={[styles.loginButtonText, { color: theme.colors.onPrimary }]}>
               {submitting ? 'Ingresando...' : 'Ingresar'}
             </Text>
-            <Ionicons name="arrow-forward-outline" size={20} color="#FFF" />
+            <Ionicons name="arrow-forward-outline" size={20} color={theme.colors.onPrimary} />
           </TouchableOpacity>
           <TouchableOpacity
             style={styles.registerLink}
             onPress={() => router.push('/register')}
             disabled={submitting}
+            accessibilityRole="button"
           >
             <Text style={[styles.registerText, { color: theme.colors.subtext }]}>
               No tenes cuenta?{' '}
@@ -227,7 +233,7 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   disabled: { opacity: 0.6 },
-  loginButtonText: { color: '#FFF', fontSize: 16, fontWeight: '700' },
+  loginButtonText: { fontSize: 16, fontWeight: '700' },
   registerLink: { alignItems: 'center', marginTop: 20 },
   registerText: { fontSize: 14 },
 });

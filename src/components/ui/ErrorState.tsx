@@ -6,6 +6,7 @@ interface Props {
   onRetry?: () => void;
   color?: string;
   dangerColor?: string;
+  actionTextColor?: string;
   textColor?: string;
   mutedColor?: string;
 }
@@ -13,8 +14,9 @@ interface Props {
 export function ErrorState({
   message,
   onRetry,
-  color = '#148A83',
+  color = '#0F766E',
   dangerColor = '#C84C59',
+  actionTextColor = '#FFFFFF',
   textColor = '#183A40',
   mutedColor = '#668087',
 }: Props) {
@@ -28,9 +30,11 @@ export function ErrorState({
           style={[styles.retryBtn, { backgroundColor: color }]}
           onPress={onRetry}
           activeOpacity={0.8}
+          accessibilityRole="button"
+          accessibilityLabel="Reintentar carga"
         >
-          <Ionicons name="refresh-outline" size={18} color="#FFF" />
-          <Text style={styles.retryText}>Reintentar</Text>
+          <Ionicons name="refresh-outline" size={18} color={actionTextColor} />
+          <Text style={[styles.retryText, { color: actionTextColor }]}>Reintentar</Text>
         </TouchableOpacity>
       )}
     </View>
@@ -48,6 +52,7 @@ const styles = StyleSheet.create({
   title: { fontSize: 18, fontWeight: '700' },
   message: { fontSize: 14, textAlign: 'center' },
   retryBtn: {
+    minHeight: 44,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
@@ -56,5 +61,5 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     marginTop: 12,
   },
-  retryText: { color: '#FFF', fontWeight: '700', fontSize: 15 },
+  retryText: { fontWeight: '700', fontSize: 15 },
 });

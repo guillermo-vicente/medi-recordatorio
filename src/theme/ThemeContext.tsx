@@ -42,7 +42,7 @@ export function AppThemeProvider({ children }: { children: React.ReactNode }) {
             ...MD3LightTheme,
             colors: {
               ...MD3LightTheme.colors,
-              primary: '#148A83',
+              primary: '#0F766E',
               secondary: '#72B7A8',
             },
           },

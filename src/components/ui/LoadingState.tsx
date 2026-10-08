@@ -8,7 +8,7 @@ interface Props {
 
 export function LoadingState({
   message = 'Cargando...',
-  color = '#148A83',
+  color = '#0F766E',
   textColor = '#668087',
 }: Props) {
   return (

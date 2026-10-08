@@ -26,6 +26,16 @@ function getEstadoMeta(estado: Medicamento['estado']) {
     return ESTADOS_TOMA.pendiente;
 }
 
+function getMomentoComidaLabel(item: Medicamento): string | undefined {
+    const labels = {
+        antes: 'Antes de comer',
+        durante: 'Durante la comida',
+        despues: 'Después de comer',
+        sin_indicar: 'Sin indicar',
+    };
+    return item.momentoComida ? labels[item.momentoComida] : undefined;
+}
+
 export default function HomeScreen() {
     const { user } = useAuth();
     const theme = useTheme();
@@ -58,7 +68,8 @@ export default function HomeScreen() {
         const details = [
             `Dosis: ${item.dosis}`,
             `Frecuencia: cada ${item.frecuenciaHoras} horas`,
-            item.indicaciones ? `Indicaciones: ${item.indicaciones}` : '',
+            getMomentoComidaLabel(item) ? `Momento indicado: ${getMomentoComidaLabel(item)}` : '',
+            (item.observaciones ?? item.indicaciones) ? `Observaciones: ${item.observaciones ?? item.indicaciones}` : '',
             '',
             '¿Registrar esta toma como realizada?',
         ].filter(Boolean).join('\n');
@@ -86,6 +97,8 @@ export default function HomeScreen() {
                     ? theme.colors.danger
                     : theme.colors.warning;
             const ultimoRegistro = item.historialTomas?.[item.historialTomas.length - 1];
+            const momentoComidaLabel = getMomentoComidaLabel(item);
+            const observaciones = item.observaciones ?? item.indicaciones;
 
             return (
                 <View
@@ -105,17 +118,20 @@ export default function HomeScreen() {
                             >
                                 {item.nombre}
                             </Text>
-                            <View style={[styles.badge, { backgroundColor: statusColor }]}>
-                                <Text style={styles.badgeText}>{meta.label}</Text>
+                            <View style={[styles.badge, { backgroundColor: `${statusColor}18` }]}>
+                                <Text style={[styles.badgeText, { color: statusColor }]}>{meta.label}</Text>
                             </View>
                         </View>
                         <Text style={[styles.cardSubtitle, { color: theme.colors.subtext }]}>
                             {item.dosis} · cada {item.frecuenciaHoras}hs
                         </Text>
-                        {item.indicaciones ? (
+                        {momentoComidaLabel ? (
                             <Text style={[styles.cardNote, { color: theme.colors.text }]}>
-                                Indicaciones: {item.indicaciones}
+                                Momento indicado: {momentoComidaLabel}
                             </Text>
+                        ) : null}
+                        {observaciones ? (
+                            <Text style={[styles.cardNote, { color: theme.colors.text }]}>Observaciones: {observaciones}</Text>
                         ) : null}
                         <Text style={[styles.cardMeta, { color: theme.colors.subtext }]}>
                             Próxima: {new Date(item.proximaToma).toLocaleString()}
@@ -129,13 +145,17 @@ export default function HomeScreen() {
                             <TouchableOpacity
                                 style={[styles.actionButton, styles.primaryAction, { backgroundColor: theme.colors.primary }]}
                                 onPress={() => handleMarkTaken(item)}
+                                accessibilityRole="button"
+                                accessibilityLabel={`Registrar toma realizada de ${item.nombre}`}
                             >
-                                <Ionicons name="checkmark-circle-outline" size={17} color="#FFFFFF" />
-                                <Text style={[styles.actionText, styles.primaryActionText]}>Marcar tomada</Text>
+                                <Ionicons name="checkmark-circle-outline" size={17} color={theme.colors.onPrimary} />
+                                <Text style={[styles.actionText, { color: theme.colors.onPrimary }]}>Marcar tomada</Text>
                             </TouchableOpacity>
                             <TouchableOpacity
                                 style={[styles.actionButton, { borderColor: `${theme.colors.danger}66`, backgroundColor: `${theme.colors.danger}12` }]}
                                 onPress={() => handleMarkMissed(item)}
+                                accessibilityRole="button"
+                                accessibilityLabel={`Registrar toma omitida de ${item.nombre}`}
                             >
                                 <Ionicons name="close-circle-outline" size={17} color={theme.colors.danger} />
                                 <Text style={[styles.actionText, { color: theme.colors.danger }]}>Omitida</Text>
@@ -143,9 +163,20 @@ export default function HomeScreen() {
                             <TouchableOpacity
                                 style={[styles.actionButton, { borderColor: theme.colors.border }]}
                                 onPress={() => router.push({ pathname: '/medicamento/nuevo', params: { id: item.id } })}
+                                accessibilityRole="button"
+                                accessibilityLabel={`Editar ${item.nombre}`}
                             >
                                 <Ionicons name="create-outline" size={17} color={theme.colors.primary} />
                                 <Text style={[styles.actionText, { color: theme.colors.primary }]}>Editar</Text>
+                            </TouchableOpacity>
+                            <TouchableOpacity
+                                style={[styles.actionButton, { borderColor: theme.colors.border }]}
+                                onPress={() => router.push({ pathname: '/medicamento/[id]/historial', params: { id: item.id } })}
+                                accessibilityRole="button"
+                                accessibilityLabel={`Ver historial de ${item.nombre}`}
+                            >
+                                <Ionicons name="time-outline" size={17} color={theme.colors.primary} />
+                                <Text style={[styles.actionText, { color: theme.colors.primary }]}>Historial</Text>
                             </TouchableOpacity>
                             <TouchableOpacity
                                 style={[styles.actionButton, { borderColor: theme.colors.border }]}
@@ -153,6 +184,8 @@ export default function HomeScreen() {
                                     const confirmed = await showConfirm({ title: 'Eliminar medicamento', message: `¿Querés eliminar ${item.nombre}?`, confirmText: 'Eliminar', cancelText: 'Cancelar', destructive: true });
                                     if (confirmed) await remove(item.id);
                                 }}
+                                accessibilityRole="button"
+                                accessibilityLabel={`Eliminar ${item.nombre}`}
                             >
                                 <Ionicons name="trash-outline" size={17} color={theme.colors.danger} />
                                 <Text style={[styles.actionText, { color: theme.colors.danger }]}>Eliminar</Text>
@@ -183,6 +216,7 @@ export default function HomeScreen() {
                     onRetry={refresh}
                     color={theme.colors.primary}
                     dangerColor={theme.colors.danger}
+                    actionTextColor={theme.colors.onPrimary}
                     textColor={theme.colors.text}
                     mutedColor={theme.colors.subtext}
                 />
@@ -248,8 +282,10 @@ export default function HomeScreen() {
                 style={[styles.fab, { backgroundColor: theme.colors.primary }]}
                 onPress={handleAdd}
                 activeOpacity={0.85}
+                accessibilityRole="button"
+                accessibilityLabel="Agregar medicamento"
             >
-                <Ionicons name="add" size={28} color="#FFF" />
+                        <Ionicons name="add" size={28} color={theme.colors.onPrimary} />
             </TouchableOpacity>
         </SafeAreaView>
     );
@@ -268,9 +304,9 @@ const styles = StyleSheet.create({
     },
     headerTop: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
     headerText: { flex: 1 },
-    greeting: { fontSize: 10, fontWeight: '700', letterSpacing: 1.1, color: 'rgba(255,255,255,0.76)' },
-    title: { fontSize: 23, fontWeight: '800', color: '#FFFFFF', marginTop: 5 },
-    headerCaption: { color: 'rgba(255,255,255,0.86)', fontSize: 13, marginTop: 12 },
+    greeting: { fontSize: 12, fontWeight: '700', letterSpacing: 1.1, color: 'rgba(255,255,255,0.76)' },
+    title: { fontSize: 24, fontWeight: '800', color: '#FFFFFF', marginTop: 5 },
+    headerCaption: { color: 'rgba(255,255,255,0.86)', fontSize: 15, marginTop: 12 },
     headerIcon: { width: 48, height: 48, borderRadius: 16, backgroundColor: 'rgba(255,255,255,0.14)', alignItems: 'center', justifyContent: 'center' },
     listContent: {
         paddingHorizontal: 20,
@@ -307,19 +343,17 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         marginBottom: 4,
     },
-    cardTitle: { fontSize: 16, fontWeight: '700', flex: 1, marginRight: 8 },
-    cardSubtitle: { fontSize: 13 },
-    cardNote: { fontSize: 13, marginTop: 6, lineHeight: 18 },
-    cardMeta: { fontSize: 11, marginTop: 6, lineHeight: 16 },
+    cardTitle: { fontSize: 18, fontWeight: '700', flex: 1, marginRight: 8 },
+    cardSubtitle: { fontSize: 15 },
+    cardNote: { fontSize: 15, marginTop: 6, lineHeight: 21 },
+    cardMeta: { fontSize: 13, marginTop: 6, lineHeight: 19 },
     actionsRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 10 },
-    actionButton: { minHeight: 40, flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 11, borderWidth: 1, borderRadius: 12 },
+    actionButton: { minHeight: 44, flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 11, borderWidth: 1, borderRadius: 12 },
     primaryAction: { borderColor: 'transparent' },
-    primaryActionText: { color: '#FFFFFF' },
-    actionText: { fontSize: 12, fontWeight: '600' },
-    badge: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 6 },
+    actionText: { fontSize: 14, fontWeight: '600' },
+    badge: { paddingHorizontal: 9, paddingVertical: 5, borderRadius: 8 },
     badgeText: {
-        color: '#FFF',
-        fontSize: 10,
+        fontSize: 12,
         fontWeight: '700',
         textTransform: 'uppercase',
     },

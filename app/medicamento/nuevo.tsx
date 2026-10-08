@@ -15,6 +15,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useTheme } from '../../src/theme/useTheme';
 import { useMedicamentos } from '../../src/features/medicamentos/useMedicamentos';
+import type { Medicamento } from '../../src/features/medicamentos/medicamentoService';
 import { FRECUENCIAS } from '../../src/config/constants';
 import { notificationService } from '../../src/features/notifications/notificationService';
 import { showAlert } from '../../src/utils/dialogs';
@@ -37,7 +38,8 @@ export default function NuevoMedicamentoScreen() {
 
   const [nombre, setNombre] = useState('');
   const [dosis, setDosis] = useState('');
-  const [indicaciones, setIndicaciones] = useState('');
+  const [momentoComida, setMomentoComida] = useState<Medicamento['momentoComida']>();
+  const [observaciones, setObservaciones] = useState('');
   const [frecuenciaIdx, setFrecuenciaIdx] = useState(2);
   const [presetIdx, setPresetIdx] = useState(0);
   const [errors, setErrors] = useState<string[]>([]);
@@ -49,7 +51,8 @@ export default function NuevoMedicamentoScreen() {
     if (!item) return;
     setNombre(item.nombre);
     setDosis(item.dosis);
-    setIndicaciones(item.indicaciones ?? '');
+    setMomentoComida(item.momentoComida);
+    setObservaciones(item.observaciones ?? item.indicaciones ?? '');
     const idx = FRECUENCIAS.findIndex((frecuencia) => frecuencia.horas === item.frecuenciaHoras);
     if (idx >= 0) setFrecuenciaIdx(idx);
   }, [id, medicamentos]);
@@ -73,9 +76,11 @@ export default function NuevoMedicamentoScreen() {
       const data = {
         nombre: nombre.trim(),
         dosis: dosis.trim(),
-        indicaciones: indicaciones.trim(),
+        momentoComida,
+        observaciones: observaciones.trim(),
         frecuenciaHoras: frecuencia.horas,
         proximaToma,
+        indicaciones: undefined,
       };
       let itemId = id;
       let previousNotificationId: string | undefined;
@@ -123,6 +128,8 @@ export default function NuevoMedicamentoScreen() {
             style={styles.backBtn}
             onPress={() => router.back()}
             disabled={submitting}
+            accessibilityRole="button"
+            accessibilityLabel="Volver"
           >
             <Ionicons name="arrow-back" size={24} color={theme.colors.text} />
           </TouchableOpacity>
@@ -152,6 +159,7 @@ export default function NuevoMedicamentoScreen() {
                 value={nombre}
                 onChangeText={setNombre}
                 editable={!submitting}
+                accessibilityLabel="Nombre del medicamento"
               />
             </View>
 
@@ -172,20 +180,47 @@ export default function NuevoMedicamentoScreen() {
                 value={dosis}
                 onChangeText={setDosis}
                 editable={!submitting}
+                accessibilityLabel="Dosis del medicamento"
               />
             </View>
 
-            <Text style={[styles.label, { color: theme.colors.subtext }]}>Indicaciones para vos o quien te cuida</Text>
+            <Text style={[styles.label, { color: theme.colors.subtext }]}>Momento indicado respecto de la comida</Text>
+            <Text style={[styles.helperText, { color: theme.colors.subtext }]}>Registrá lo que indicó el profesional de salud.</Text>
+            <View style={styles.chipsRow}>
+              {([
+                { value: 'antes', label: 'Antes' },
+                { value: 'durante', label: 'Durante' },
+                { value: 'despues', label: 'Después' },
+                { value: 'sin_indicar', label: 'Sin indicar' },
+              ] as const).map((option) => {
+                const selected = momentoComida === option.value;
+                return (
+                  <TouchableOpacity
+                    key={option.value}
+                    style={[styles.chip, { minHeight: 44, justifyContent: 'center', borderColor: selected ? theme.colors.primary : theme.colors.border, backgroundColor: selected ? theme.colors.primary : 'transparent' }]}
+                    onPress={() => setMomentoComida(selected ? undefined : option.value)}
+                    disabled={submitting}
+                    accessibilityRole="radio"
+                    accessibilityState={{ checked: selected }}
+                  >
+                    <Text style={[styles.chipText, { color: selected ? '#FFF' : theme.colors.text }]}>{option.label}</Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+
+            <Text style={[styles.label, { color: theme.colors.subtext }]}>Observaciones</Text>
             <TextInput
               style={[styles.notesInput, { color: theme.colors.text, backgroundColor: theme.colors.bg, borderColor: theme.colors.border }]}
-              placeholder="Ej.: tomar después de comer. Anotación indicada por el profesional de salud."
+              placeholder="Anotá otros detalles que quieras recordar."
               placeholderTextColor={theme.colors.subtext}
-              value={indicaciones}
-              onChangeText={setIndicaciones}
+              value={observaciones}
+              onChangeText={setObservaciones}
               multiline
-              maxLength={300}
+              maxLength={500}
               textAlignVertical="top"
               editable={!submitting}
+              accessibilityLabel="Observaciones del medicamento"
             />
 
             <Text style={[styles.label, { color: theme.colors.subtext }]}>
@@ -205,6 +240,9 @@ export default function NuevoMedicamentoScreen() {
                   ]}
                   onPress={() => setFrecuenciaIdx(i)}
                   disabled={submitting}
+                  accessibilityRole="radio"
+                  accessibilityLabel={`Cada ${f.horas} horas`}
+                  accessibilityState={{ checked: frecuenciaIdx === i }}
                 >
                   <Text
                     style={[
@@ -238,6 +276,9 @@ export default function NuevoMedicamentoScreen() {
                   ]}
                   onPress={() => editing ? setFrecuenciaIdx(i) : setPresetIdx(i)}
                   disabled={submitting}
+                  accessibilityRole="radio"
+                  accessibilityLabel={editing ? `Próxima toma según ${p.label}` : `Próxima toma: ${p.label}`}
+                  accessibilityState={{ checked: (editing ? frecuenciaIdx : presetIdx) === i }}
                 >
                   <Text
                     style={[
@@ -282,11 +323,13 @@ export default function NuevoMedicamentoScreen() {
               onPress={handleSave}
               activeOpacity={0.8}
               disabled={submitting}
+              accessibilityRole="button"
+              accessibilityLabel={editing ? 'Guardar cambios del medicamento' : 'Guardar medicamento'}
             >
-              <Text style={styles.saveBtnText}>
+              <Text style={[styles.saveBtnText, { color: theme.colors.onPrimary }]}>
                 {submitting ? 'Guardando...' : editing ? 'Guardar cambios' : 'Guardar medicamento'}
               </Text>
-              <Ionicons name="checkmark-outline" size={20} color="#FFF" />
+              <Ionicons name="checkmark-outline" size={20} color={theme.colors.onPrimary} />
             </TouchableOpacity>
           </View>
         </ScrollView>
@@ -299,12 +342,12 @@ const styles = StyleSheet.create({
   container: { flex: 1 },
   keyboard: { flex: 1 },
   scroll: { paddingHorizontal: 24, paddingVertical: 20 },
-  backBtn: { marginBottom: 16, alignSelf: 'flex-start' },
+  backBtn: { minWidth: 44, minHeight: 44, marginBottom: 16, alignSelf: 'flex-start', justifyContent: 'center' },
   title: { fontSize: 28, fontWeight: '800' },
   subtitle: { fontSize: 15, marginTop: 4, marginBottom: 24 },
   formCard: { borderRadius: 22, padding: 22, gap: 8, borderWidth: 1 },
   label: {
-    fontSize: 12,
+    fontSize: 13,
     fontWeight: '700',
     textTransform: 'uppercase',
     letterSpacing: 1,
@@ -327,13 +370,16 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   chip: {
+    minHeight: 44,
     paddingHorizontal: 14,
     paddingVertical: 8,
     borderRadius: 10,
     borderWidth: 1,
+    justifyContent: 'center',
   },
-  chipText: { fontSize: 13, fontWeight: '600' },
-  notesInput: { minHeight: 88, borderWidth: 1, borderRadius: 14, padding: 14, fontSize: 14 },
+  chipText: { fontSize: 15, fontWeight: '600' },
+  notesInput: { minHeight: 96, borderWidth: 1, borderRadius: 14, padding: 14, fontSize: 16 },
+  helperText: { fontSize: 14, lineHeight: 20, marginTop: -4 },
   testNote: { flexDirection: 'row', alignItems: 'flex-start', gap: 8, borderRadius: 12, padding: 12, marginBottom: 8 },
   testNoteText: { flex: 1, fontSize: 12, lineHeight: 17 },
   errorContainer: { marginTop: 8 },
@@ -348,5 +394,5 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   disabled: { opacity: 0.6 },
-  saveBtnText: { color: '#FFF', fontSize: 16, fontWeight: '700' },
+  saveBtnText: { fontSize: 16, fontWeight: '700' },
 });

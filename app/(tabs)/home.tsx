@@ -171,7 +171,7 @@ export default function HomeScreen() {
                             </TouchableOpacity>
                             <TouchableOpacity
                                 style={[styles.actionButton, { borderColor: theme.colors.border }]}
-                                onPress={() => router.push({ pathname: '/medicamento/[id]/historial', params: { id: item.id } })}
+                                onPress={() => router.push({ pathname: '../medicamento/[id]/historial', params: { id: item.id } })}
                                 accessibilityRole="button"
                                 accessibilityLabel={`Ver historial de ${item.nombre}`}
                             >

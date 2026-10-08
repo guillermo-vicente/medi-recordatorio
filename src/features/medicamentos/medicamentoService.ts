@@ -11,6 +11,10 @@ export interface Medicamento {
   dosis: string;
   frecuenciaHoras: number;
   proximaToma: number;
+  indicaciones?: string;
+  notificationId?: string;
+  ultimaToma?: number;
+  historialTomas?: { fecha: number; estado: 'tomado' | 'omitido' }[];
   estado: 'pendiente' | 'tomado' | 'omitido';
   createdAt: number;
   userEmail: string;
@@ -40,11 +44,12 @@ export const medicamentoService = {
       []
     );
     const nuevo: Medicamento = {
-      id: Date.now().toString(),
+      id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
       nombre: data.nombre,
       dosis: data.dosis,
       frecuenciaHoras: data.frecuenciaHoras,
       proximaToma: data.proximaToma,
+      indicaciones: data.indicaciones,
       estado: ESTADOS_TOMA.pendiente.key,
       createdAt: Date.now(),
       userEmail,
@@ -54,33 +59,56 @@ export const medicamentoService = {
   },
 
   // update y remove trabajan sobre la lista completa porque el id es único
-  async update(id: string, changes: Partial<Medicamento>): Promise<void> {
+  async update(userEmail: string, id: string, changes: Partial<Medicamento>): Promise<void> {
     const todos = await storage.get<Medicamento[]>(
       STORAGE_KEYS.MEDICAMENTOS,
       []
     );
     const updated = todos.map((m) =>
-      m.id === id ? { ...m, ...changes } : m
+      m.id === id && m.userEmail === userEmail ? { ...m, ...changes } : m
     );
     await storage.set(STORAGE_KEYS.MEDICAMENTOS, updated);
   },
 
-  async remove(id: string): Promise<void> {
+  async remove(userEmail: string, id: string): Promise<void> {
     const todos = await storage.get<Medicamento[]>(
       STORAGE_KEYS.MEDICAMENTOS,
       []
     );
     await storage.set(
       STORAGE_KEYS.MEDICAMENTOS,
-      todos.filter((m) => m.id !== id)
+      todos.filter((m) => m.id !== id || m.userEmail !== userEmail)
     );
   },
 
-  async markAsTaken(id: string): Promise<void> {
-    await medicamentoService.update(id, { estado: ESTADOS_TOMA.tomado.key });
-  },
-
-  async markAsMissed(id: string): Promise<void> {
-    await medicamentoService.update(id, { estado: ESTADOS_TOMA.omitido.key });
+  async recordDose(
+    userEmail: string,
+    id: string,
+    estado: 'tomado' | 'omitido'
+  ): Promise<Medicamento | null> {
+    const item = await medicamentoService.getById(userEmail, id);
+    if (!item) return null;
+    const ahora = Date.now();
+    const proximaToma = ahora + item.frecuenciaHoras * 60 * 60 * 1000;
+    const historialTomas = [
+      ...(item.historialTomas ?? []),
+      { fecha: ahora, estado },
+    ].slice(-100);
+    const updated: Medicamento = {
+      ...item,
+      estado,
+      ultimaToma: estado === 'tomado' ? ahora : item.ultimaToma,
+      historialTomas,
+      proximaToma,
+      notificationId: undefined,
+    };
+    await medicamentoService.update(userEmail, id, {
+      estado,
+      ultimaToma: updated.ultimaToma,
+      historialTomas,
+      proximaToma,
+      notificationId: undefined,
+    });
+    return updated;
   },
 };

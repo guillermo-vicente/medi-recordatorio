@@ -12,7 +12,8 @@ try {
 }
 
 // Guardado de IDs de los setTimeout del fallback para poder cancelarlos
-let timeoutIds: ReturnType<typeof setTimeout>[] = [];
+let timeoutIds = new Map<string, ReturnType<typeof setTimeout>>();
+let fallbackCounter = 0;
 
 let handlerConfigurado = false;
 
@@ -59,6 +60,16 @@ export const notificationService = {
     }
   },
 
+  async hasPermission(): Promise<boolean> {
+    if (!Notifications || Platform.OS === 'web') return false;
+    try {
+      const { status } = await Notifications.getPermissionsAsync();
+      return status === 'granted';
+    } catch {
+      return false;
+    }
+  },
+
   async schedule(
     nombre: string,
     segundosHastaDisparar: number,
@@ -93,20 +104,27 @@ export const notificationService = {
       '[notifications] usando fallback con Alert (limitacion de Expo Go Android)'
     );
 
+    const fallbackId = `fallback-${++fallbackCounter}`;
     const timeoutId = setTimeout(() => {
       Alert.alert(
         'Recordatorio de medicamento',
         `${saludo} hora de tomar ${nombre}`
       );
       // Limpiar el id del array una vez disparado
-      timeoutIds = timeoutIds.filter((id) => id !== timeoutId);
+      timeoutIds.delete(fallbackId);
     }, segundosHastaDisparar * 1000);
 
-    timeoutIds.push(timeoutId);
-    return null;
+    timeoutIds.set(fallbackId, timeoutId);
+    return fallbackId;
   },
 
   async cancel(id: string): Promise<void> {
+    if (id.startsWith('fallback-')) {
+      const timeoutId = timeoutIds.get(id);
+      if (timeoutId) clearTimeout(timeoutId);
+      timeoutIds.delete(id);
+      return;
+    }
     if (!Notifications || Platform.OS === 'web') return;
     try {
       await Notifications.cancelScheduledNotificationAsync(id);
@@ -119,7 +137,7 @@ export const notificationService = {
   async cancelAll(): Promise<void> {
     // Cancelar los setTimeout pendientes del fallback
     timeoutIds.forEach((id) => clearTimeout(id));
-    timeoutIds = [];
+    timeoutIds.clear();
 
     // Cancelar las notificaciones nativas pendientes, si estan disponibles
     if (Notifications && Platform.OS !== 'web') {

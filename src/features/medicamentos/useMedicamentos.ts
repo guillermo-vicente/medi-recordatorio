@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Medicamento, medicamentoService } from './medicamentoService';
 import { useAuth } from '../auth/useAuth';
+import { notificationService } from '../notifications/notificationService';
 
 export interface UseMedicamentosResult {
   medicamentos: Medicamento[];
@@ -11,8 +12,9 @@ export interface UseMedicamentosResult {
   reloadSilently: () => Promise<void>;
   add: (
     data: Omit<Medicamento, 'id' | 'estado' | 'createdAt' | 'userEmail'>
-  ) => Promise<void>;
+  ) => Promise<Medicamento>;
   remove: (id: string) => Promise<void>;
+  update: (id: string, changes: Partial<Medicamento>) => Promise<void>;
   markAsTaken: (id: string) => Promise<void>;
   markAsMissed: (id: string) => Promise<void>;
 }
@@ -66,34 +68,67 @@ export function useMedicamentos(): UseMedicamentosResult {
       if (!user?.email) {
         throw new Error('Usuario no autenticado');
       }
-      await medicamentoService.add(user.email, data);
+      const created = await medicamentoService.add(user.email, data);
       await reloadSilently();
+      return created;
     },
     [user?.email, reloadSilently]
   );
 
   const remove = useCallback(
     async (id: string) => {
-      await medicamentoService.remove(id);
+      if (!user?.email) throw new Error('Usuario no autenticado');
+      const item = await medicamentoService.getById(user.email, id);
+      if (!item) return;
+      if (item.notificationId) await notificationService.cancel(item.notificationId);
+      await medicamentoService.remove(user.email, id);
       await reloadSilently();
     },
-    [reloadSilently]
+    [user?.email, reloadSilently]
+  );
+
+  const update = useCallback(
+    async (id: string, changes: Partial<Medicamento>) => {
+      if (!user?.email) throw new Error('Usuario no autenticado');
+      const item = await medicamentoService.getById(user.email, id);
+      if (!item) throw new Error('No se encontró el medicamento');
+      await medicamentoService.update(user.email, id, changes);
+      await reloadSilently();
+    },
+    [user?.email, reloadSilently]
+  );
+
+  const recordDose = useCallback(
+    async (id: string, estado: 'tomado' | 'omitido') => {
+      if (!user?.email) throw new Error('Usuario no autenticado');
+      const item = await medicamentoService.getById(user.email, id);
+      if (!item) return;
+      if (item.notificationId) await notificationService.cancel(item.notificationId);
+      const next = await medicamentoService.recordDose(user.email, id, estado);
+      if (next) {
+        const canNotify = !notificationService.isAvailable() || await notificationService.hasPermission();
+        if (canNotify) {
+          const notificationId = await notificationService.schedule(
+            next.nombre,
+            next.frecuenciaHoras * 60 * 60,
+            user.name
+          );
+          await medicamentoService.update(user.email, id, { notificationId: notificationId ?? undefined });
+        }
+      }
+      await reloadSilently();
+    },
+    [user?.email, user?.name, reloadSilently]
   );
 
   const markAsTaken = useCallback(
-    async (id: string) => {
-      await medicamentoService.markAsTaken(id);
-      await reloadSilently();
-    },
-    [reloadSilently]
+    async (id: string) => recordDose(id, 'tomado'),
+    [recordDose]
   );
 
   const markAsMissed = useCallback(
-    async (id: string) => {
-      await medicamentoService.markAsMissed(id);
-      await reloadSilently();
-    },
-    [reloadSilently]
+    async (id: string) => recordDose(id, 'omitido'),
+    [recordDose]
   );
 
   return {
@@ -105,6 +140,7 @@ export function useMedicamentos(): UseMedicamentosResult {
     reloadSilently, 
     add,
     remove,
+    update,
     markAsTaken,
     markAsMissed,
   };

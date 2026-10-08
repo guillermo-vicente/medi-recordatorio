@@ -1,5 +1,5 @@
-// Maneja el estado global de autenticacion.
-// Persiste usuarios en AsyncStorage y el token cifrado en SecureStore.
+// Maneja la autenticacion local de demostracion; no valida una cuenta remota.
+// Las contrasenas quedan en AsyncStorage y el token de sesion es simulado.
 
 import React, {
     createContext,
@@ -21,6 +21,7 @@ export interface AuthUser {
 
 
 interface StoredUser extends AuthUser {
+    // Solo para el prototipo: AsyncStorage no cifra este dato.
     password: string;
 }
 

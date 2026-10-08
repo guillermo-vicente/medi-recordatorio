@@ -37,6 +37,7 @@ export default function HomeScreen() {
         refresh,
         reloadSilently,
         markAsTaken,
+        markAsMissed,
         remove,
     } = useMedicamentos();
 
@@ -53,51 +54,40 @@ export default function HomeScreen() {
         router.push('/medicamento/nuevo');
     }, [router]);
 
-    const handleItemPress = useCallback(
-        async (item: Medicamento) => {
-            const yaTomado = item.estado === 'tomado';
+    const handleMarkTaken = useCallback(async (item: Medicamento) => {
+        const details = [
+            `Dosis: ${item.dosis}`,
+            `Frecuencia: cada ${item.frecuenciaHoras} horas`,
+            item.indicaciones ? `Indicaciones: ${item.indicaciones}` : '',
+            '',
+            '¿Registrar esta toma como realizada?',
+        ].filter(Boolean).join('\n');
+        if (await showConfirm({ title: item.nombre, message: details, confirmText: 'Marcar tomada', cancelText: 'Cancelar' })) {
+            await markAsTaken(item.id);
+        }
+    }, [markAsTaken]);
 
-            if (!yaTomado) {
-                const marcarTomado = await showConfirm({
-                    title: item.nombre,
-                    message: `Dosis: ${item.dosis}\nFrecuencia: cada ${item.frecuenciaHoras} horas\n\n¿Marcar como tomado?`,
-                    confirmText: 'Marcar tomado',
-                    cancelText: 'Cerrar',
-                });
-
-                if (marcarTomado) {
-                    await markAsTaken(item.id);
-                    return;
-                }
-            }
-
-            const eliminar = await showConfirm({
-                title: 'Eliminar medicamento',
-                message: `¿Querés eliminar ${item.nombre}? Esta acción no se puede deshacer.`,
-                confirmText: 'Eliminar',
-                cancelText: 'Cancelar',
-                destructive: true,
-            });
-
-            if (eliminar) {
-                await remove(item.id);
-            }
-        },
-        [markAsTaken, remove]
-    );
+    const handleMarkMissed = useCallback(async (item: Medicamento) => {
+        const confirmed = await showConfirm({
+            title: 'Registrar toma omitida',
+            message: `¿Querés registrar como omitida la toma de ${item.nombre}? El próximo recordatorio se calculará desde ahora.`,
+            confirmText: 'Registrar omitida',
+            cancelText: 'Cancelar',
+        });
+        if (confirmed) await markAsMissed(item.id);
+    }, [markAsMissed]);
 
     const renderItem = useCallback(
         ({ item }: { item: Medicamento }) => {
-            const meta = getEstadoMeta(item.estado);
+            const meta = getEstadoMeta(item.proximaToma <= Date.now() ? 'pendiente' : item.estado);
+            const ultimoRegistro = item.historialTomas?.[item.historialTomas.length - 1];
 
             return (
-                <TouchableOpacity
+                <View
                     style={[
                         styles.card,
                         { backgroundColor: theme.colors.card, borderLeftColor: meta.color },
                     ]}
-                    onPress={() => handleItemPress(item)}
-                    activeOpacity={0.7}
                 >
                     <View style={[styles.cardIcon, { backgroundColor: meta.color + '1A' }]}>
                         <Ionicons name="medical" size={24} color={meta.color} />
@@ -117,11 +107,56 @@ export default function HomeScreen() {
                         <Text style={[styles.cardSubtitle, { color: theme.colors.subtext }]}>
                             {item.dosis} · cada {item.frecuenciaHoras}hs
                         </Text>
+                        {item.indicaciones ? (
+                            <Text style={[styles.cardNote, { color: theme.colors.text }]}>
+                                Indicaciones: {item.indicaciones}
+                            </Text>
+                        ) : null}
+                        <Text style={[styles.cardMeta, { color: theme.colors.subtext }]}>
+                            Próxima: {new Date(item.proximaToma).toLocaleString()}
+                        </Text>
+                            <Text style={[styles.cardMeta, { color: theme.colors.subtext }]}>
+                                Último registro: {ultimoRegistro?.estado ?? 'tomado'} · {new Date(ultimoRegistro?.fecha ?? item.ultimaToma!).toLocaleString()}
+                            </Text>
+                        ) : null}
+                        <View style={styles.actionsRow}>
+                            <TouchableOpacity
+                                style={[styles.actionButton, { borderColor: theme.colors.border }]}
+                                onPress={() => handleMarkTaken(item)}
+                            >
+                                <Ionicons name="checkmark-circle-outline" size={17} color={theme.colors.primary} />
+                                <Text style={[styles.actionText, { color: theme.colors.primary }]}>Marcar toma</Text>
+                            </TouchableOpacity>
+                            <TouchableOpacity
+                                style={[styles.actionButton, { borderColor: theme.colors.border }]}
+                                onPress={() => handleMarkMissed(item)}
+                            >
+                                <Ionicons name="close-circle-outline" size={17} color={theme.colors.danger} />
+                                <Text style={[styles.actionText, { color: theme.colors.danger }]}>Omitida</Text>
+                            </TouchableOpacity>
+                            <TouchableOpacity
+                                style={[styles.actionButton, { borderColor: theme.colors.border }]}
+                                onPress={() => router.push({ pathname: '/medicamento/nuevo', params: { id: item.id } })}
+                            >
+                                <Ionicons name="create-outline" size={17} color={theme.colors.primary} />
+                                <Text style={[styles.actionText, { color: theme.colors.primary }]}>Editar</Text>
+                            </TouchableOpacity>
+                            <TouchableOpacity
+                                style={[styles.actionButton, { borderColor: theme.colors.border }]}
+                                onPress={async () => {
+                                    const confirmed = await showConfirm({ title: 'Eliminar medicamento', message: `¿Querés eliminar ${item.nombre}?`, confirmText: 'Eliminar', cancelText: 'Cancelar', destructive: true });
+                                    if (confirmed) await remove(item.id);
+                                }}
+                            >
+                                <Ionicons name="trash-outline" size={17} color={theme.colors.danger} />
+                                <Text style={[styles.actionText, { color: theme.colors.danger }]}>Eliminar</Text>
+                            </TouchableOpacity>
+                        </View>
                     </View>
-                </TouchableOpacity>
+                </View>
             );
         },
-        [theme, handleItemPress]
+        [theme, handleMarkTaken, handleMarkMissed, router, remove]
     );
 
     const renderContent = () => {
@@ -233,6 +268,11 @@ const styles = StyleSheet.create({
     },
     cardTitle: { fontSize: 16, fontWeight: '700', flex: 1, marginRight: 8 },
     cardSubtitle: { fontSize: 13 },
+    cardNote: { fontSize: 13, marginTop: 6, lineHeight: 18 },
+    cardMeta: { fontSize: 11, marginTop: 6, lineHeight: 16 },
+    actionsRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 10 },
+    actionButton: { flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 9, paddingVertical: 5, borderWidth: 1, borderRadius: 8 },
+    actionText: { fontSize: 12, fontWeight: '600' },
     badge: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 6 },
     badgeText: {
         color: '#FFF',

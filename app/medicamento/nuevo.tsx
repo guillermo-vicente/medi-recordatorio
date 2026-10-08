@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   KeyboardAvoidingView,
   Platform,
@@ -12,32 +12,46 @@ import {
 import { useAuth } from '../../src/features/auth/useAuth';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useTheme } from '../../src/theme/useTheme';
 import { useMedicamentos } from '../../src/features/medicamentos/useMedicamentos';
 import { FRECUENCIAS } from '../../src/config/constants';
 import { notificationService } from '../../src/features/notifications/notificationService';
+import { showAlert } from '../../src/utils/dialogs';
 
 const PRESETS_PROXIMA_TOMA = [
-  { label: '15 seg', segundos: 15 },
-  { label: '1 min', segundos: 60 },
-  { label: '5 min', segundos: 5 * 60 },
-  { label: '30 min', segundos: 30 * 60 },
   { label: '1 hora', segundos: 60 * 60 },
+  { label: '4 horas', segundos: 4 * 60 * 60 },
+  { label: '8 horas', segundos: 8 * 60 * 60 },
+  { label: '12 horas', segundos: 12 * 60 * 60 },
+  { label: '24 horas', segundos: 24 * 60 * 60 },
 ];
 
 export default function NuevoMedicamentoScreen() {
   const router = useRouter();
+  const { id } = useLocalSearchParams<{ id?: string }>();
   const theme = useTheme();
   const { user } = useAuth();
-  const { add } = useMedicamentos();
+  const { add, update, medicamentos } = useMedicamentos();
 
   const [nombre, setNombre] = useState('');
   const [dosis, setDosis] = useState('');
+  const [indicaciones, setIndicaciones] = useState('');
   const [frecuenciaIdx, setFrecuenciaIdx] = useState(2);
   const [presetIdx, setPresetIdx] = useState(0);
   const [errors, setErrors] = useState<string[]>([]);
   const [submitting, setSubmitting] = useState(false);
+  const editing = Boolean(id);
+
+  useEffect(() => {
+    const item = medicamentos.find((med) => med.id === id);
+    if (!item) return;
+    setNombre(item.nombre);
+    setDosis(item.dosis);
+    setIndicaciones(item.indicaciones ?? '');
+    const idx = FRECUENCIAS.findIndex((frecuencia) => frecuencia.horas === item.frecuenciaHoras);
+    if (idx >= 0) setFrecuenciaIdx(idx);
+  }, [id, medicamentos]);
 
   const handleSave = async () => {
     const errs: string[] = [];
@@ -52,21 +66,36 @@ export default function NuevoMedicamentoScreen() {
     try {
       const frecuencia = FRECUENCIAS[frecuenciaIdx];
       const preset = PRESETS_PROXIMA_TOMA[presetIdx];
-      const proximaToma = Date.now() + preset.segundos * 1000;
-
-      await add({
+      const proximaToma = editing
+        ? Date.now() + FRECUENCIAS[frecuenciaIdx].horas * 60 * 60 * 1000
+        : Date.now() + preset.segundos * 1000;
+      const data = {
         nombre: nombre.trim(),
         dosis: dosis.trim(),
+        indicaciones: indicaciones.trim(),
         frecuenciaHoras: frecuencia.horas,
         proximaToma,
-      });
-
-      await notificationService.requestPermissions();
-      await notificationService.schedule(
-        nombre.trim(),
-        preset.segundos,
-        user?.name
-      );
+      };
+      let itemId = id;
+      let previousNotificationId: string | undefined;
+      if (editing) {
+        const existing = medicamentos.find((med) => med.id === id);
+        previousNotificationId = existing?.notificationId;
+        await update(id!, { ...data, estado: 'pendiente', notificationId: undefined });
+      } else {
+        const created = await add(data);
+        itemId = created.id;
+      }
+      if (previousNotificationId) await notificationService.cancel(previousNotificationId);
+      const allowed = await notificationService.requestPermissions();
+      if (allowed || !notificationService.isAvailable()) {
+        const notificationId = await notificationService.schedule(
+          nombre.trim(), editing ? frecuencia.horas * 60 * 60 : preset.segundos, user?.name
+        );
+        if (itemId) await update(itemId, { notificationId: notificationId ?? undefined });
+      } else {
+        showAlert('Notificaciones desactivadas', 'El medicamento se guardó, pero no recibirás avisos hasta habilitar las notificaciones en la configuración del dispositivo.');
+      }
 
       router.back();
     } catch (e) {
@@ -98,7 +127,7 @@ export default function NuevoMedicamentoScreen() {
           </TouchableOpacity>
 
           <Text style={[styles.title, { color: theme.colors.text }]}>
-            Nuevo Medicamento
+            {editing ? 'Editar medicamento' : 'Nuevo medicamento'}
           </Text>
           <Text style={[styles.subtitle, { color: theme.colors.subtext }]}>
             Completá los datos y programá el recordatorio
@@ -145,6 +174,19 @@ export default function NuevoMedicamentoScreen() {
               />
             </View>
 
+            <Text style={[styles.label, { color: theme.colors.subtext }]}>Indicaciones para vos o quien te cuida</Text>
+            <TextInput
+              style={[styles.notesInput, { color: theme.colors.text, backgroundColor: theme.colors.bg, borderColor: theme.colors.border }]}
+              placeholder="Ej.: tomar después de comer. Anotación indicada por el profesional de salud."
+              placeholderTextColor={theme.colors.subtext}
+              value={indicaciones}
+              onChangeText={setIndicaciones}
+              multiline
+              maxLength={300}
+              textAlignVertical="top"
+              editable={!submitting}
+            />
+
             <Text style={[styles.label, { color: theme.colors.subtext }]}>
               Frecuencia
             </Text>
@@ -182,7 +224,7 @@ export default function NuevoMedicamentoScreen() {
               Próxima toma (recibirás la notificación)
             </Text>
             <View style={styles.chipsRow}>
-              {PRESETS_PROXIMA_TOMA.map((p, i) => (
+              {(editing ? FRECUENCIAS.map((f) => ({ label: f.label, segundos: f.horas * 3600 })) : PRESETS_PROXIMA_TOMA).map((p, i) => (
                 <TouchableOpacity
                   key={p.label}
                   style={[
@@ -190,16 +232,16 @@ export default function NuevoMedicamentoScreen() {
                     {
                       borderColor: theme.colors.border,
                       backgroundColor:
-                        presetIdx === i ? theme.colors.primary : 'transparent',
+                        (editing ? frecuenciaIdx : presetIdx) === i ? theme.colors.primary : 'transparent',
                     },
                   ]}
-                  onPress={() => setPresetIdx(i)}
+                  onPress={() => editing ? setFrecuenciaIdx(i) : setPresetIdx(i)}
                   disabled={submitting}
                 >
                   <Text
                     style={[
                       styles.chipText,
-                      { color: presetIdx === i ? '#FFF' : theme.colors.text },
+                      { color: (editing ? frecuenciaIdx : presetIdx) === i ? '#FFF' : theme.colors.text },
                     ]}
                   >
                     {p.label}
@@ -232,7 +274,7 @@ export default function NuevoMedicamentoScreen() {
               disabled={submitting}
             >
               <Text style={styles.saveBtnText}>
-                {submitting ? 'Guardando...' : 'Guardar medicamento'}
+                {submitting ? 'Guardando...' : editing ? 'Guardar cambios' : 'Guardar medicamento'}
               </Text>
               <Ionicons name="checkmark-outline" size={20} color="#FFF" />
             </TouchableOpacity>
@@ -280,6 +322,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
   },
   chipText: { fontSize: 13, fontWeight: '600' },
+  notesInput: { minHeight: 88, borderWidth: 1, borderRadius: 14, padding: 14, fontSize: 14 },
   errorContainer: { marginTop: 8 },
   errorText: { fontSize: 13, fontWeight: '500', marginBottom: 4 },
   saveBtn: {

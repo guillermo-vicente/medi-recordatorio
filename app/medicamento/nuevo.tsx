@@ -20,11 +20,12 @@ import { notificationService } from '../../src/features/notifications/notificati
 import { showAlert } from '../../src/utils/dialogs';
 
 const PRESETS_PROXIMA_TOMA = [
-  { label: '1 hora', segundos: 60 * 60 },
-  { label: '4 horas', segundos: 4 * 60 * 60 },
-  { label: '8 horas', segundos: 8 * 60 * 60 },
-  { label: '12 horas', segundos: 12 * 60 * 60 },
-  { label: '24 horas', segundos: 24 * 60 * 60 },
+  { label: '1 hora', segundos: 60 * 60, esPrueba: false },
+  { label: '4 horas', segundos: 4 * 60 * 60, esPrueba: false },
+  { label: '8 horas', segundos: 8 * 60 * 60, esPrueba: false },
+  { label: '12 horas', segundos: 12 * 60 * 60, esPrueba: false },
+  { label: '24 horas', segundos: 24 * 60 * 60, esPrueba: false },
+  { label: 'Prueba 15 s', segundos: 15, esPrueba: true },
 ];
 
 export default function NuevoMedicamentoScreen() {
@@ -133,11 +134,11 @@ export default function NuevoMedicamentoScreen() {
             Completá los datos y programá el recordatorio
           </Text>
 
-          <View style={[styles.formCard, { backgroundColor: theme.colors.card }]}>
+          <View style={[styles.formCard, { backgroundColor: theme.colors.card, borderColor: theme.colors.border }]}>
             <Text style={[styles.label, { color: theme.colors.subtext }]}>
               Nombre
             </Text>
-            <View style={[styles.inputWrapper, { backgroundColor: theme.colors.bg }]}>
+            <View style={[styles.inputWrapper, { backgroundColor: theme.colors.bg, borderColor: theme.colors.border }]}>
               <Ionicons
                 name="medical-outline"
                 size={20}
@@ -157,7 +158,7 @@ export default function NuevoMedicamentoScreen() {
             <Text style={[styles.label, { color: theme.colors.subtext }]}>
               Dosis
             </Text>
-            <View style={[styles.inputWrapper, { backgroundColor: theme.colors.bg }]}>
+            <View style={[styles.inputWrapper, { backgroundColor: theme.colors.bg, borderColor: theme.colors.border }]}>
               <Ionicons
                 name="flask-outline"
                 size={20}
@@ -250,6 +251,15 @@ export default function NuevoMedicamentoScreen() {
               ))}
             </View>
 
+            {!editing && PRESETS_PROXIMA_TOMA[presetIdx]?.esPrueba ? (
+              <View style={[styles.testNote, { backgroundColor: `${theme.colors.primary}12` }]}>
+                <Ionicons name="flask-outline" size={17} color={theme.colors.primary} />
+                <Text style={[styles.testNoteText, { color: theme.colors.text }]}>
+                  Modo de prueba: el aviso llega en 15 segundos. La frecuencia elegida se mantiene para las tomas siguientes.
+                </Text>
+              </View>
+            ) : null}
+
             {errors.length > 0 && (
               <View style={styles.errorContainer}>
                 {errors.map((err, i) => (
@@ -292,7 +302,7 @@ const styles = StyleSheet.create({
   backBtn: { marginBottom: 16, alignSelf: 'flex-start' },
   title: { fontSize: 28, fontWeight: '800' },
   subtitle: { fontSize: 15, marginTop: 4, marginBottom: 24 },
-  formCard: { borderRadius: 24, padding: 24, gap: 8 },
+  formCard: { borderRadius: 22, padding: 22, gap: 8, borderWidth: 1 },
   label: {
     fontSize: 12,
     fontWeight: '700',
@@ -305,6 +315,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     borderRadius: 14,
     height: 54,
+    borderWidth: 1,
     paddingHorizontal: 16,
   },
   inputIcon: { marginRight: 12 },
@@ -323,6 +334,8 @@ const styles = StyleSheet.create({
   },
   chipText: { fontSize: 13, fontWeight: '600' },
   notesInput: { minHeight: 88, borderWidth: 1, borderRadius: 14, padding: 14, fontSize: 14 },
+  testNote: { flexDirection: 'row', alignItems: 'flex-start', gap: 8, borderRadius: 12, padding: 12, marginBottom: 8 },
+  testNoteText: { flex: 1, fontSize: 12, lineHeight: 17 },
   errorContainer: { marginTop: 8 },
   errorText: { fontSize: 13, fontWeight: '500', marginBottom: 4 },
   saveBtn: {

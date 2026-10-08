@@ -7,19 +7,19 @@ export const ESTADOS_TOMA = {
   pendiente: {
     key: 'pendiente',
     label: 'Pendiente',
-    color: '#F7B731',
+    color: '#B7791F',
     icon: 'time-outline',
   },
   tomado: {
     key: 'tomado',
     label: 'Tomado',
-    color: '#20BF6B',
+    color: '#27866D',
     icon: 'checkmark-circle',
   },
   omitido: {
     key: 'omitido',
     label: 'Omitido',
-    color: '#FF6584',
+    color: '#C84C59',
     icon: 'close-circle',
   },
 } as const;

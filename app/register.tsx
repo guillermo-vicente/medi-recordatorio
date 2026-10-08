@@ -82,8 +82,8 @@ export default function RegisterScreen() {
                         Registrate para empezar a usar la app
                     </Text>
 
-                    <View style={[styles.formCard, { backgroundColor: theme.colors.card }]}>
-                        <View style={[styles.inputWrapper, { backgroundColor: theme.colors.bg }]}>
+                    <View style={[styles.formCard, { backgroundColor: theme.colors.card, borderColor: theme.colors.border }]}>
+                        <View style={[styles.inputWrapper, { backgroundColor: theme.colors.bg, borderColor: theme.colors.border }]}>
                             <Ionicons
                                 name="person-outline"
                                 size={20}
@@ -103,7 +103,7 @@ export default function RegisterScreen() {
                             />
                         </View>
 
-                        <View style={[styles.inputWrapper, { backgroundColor: theme.colors.bg }]}>
+                        <View style={[styles.inputWrapper, { backgroundColor: theme.colors.bg, borderColor: theme.colors.border }]}>
                             <Ionicons
                                 name="mail-outline"
                                 size={20}
@@ -126,7 +126,7 @@ export default function RegisterScreen() {
                             />
                         </View>
 
-                        <View style={[styles.inputWrapper, { backgroundColor: theme.colors.bg }]}>
+                        <View style={[styles.inputWrapper, { backgroundColor: theme.colors.bg, borderColor: theme.colors.border }]}>
                             <Ionicons
                                 name="lock-closed-outline"
                                 size={20}
@@ -157,7 +157,7 @@ export default function RegisterScreen() {
                             </TouchableOpacity>
                         </View>
 
-                        <View style={[styles.inputWrapper, { backgroundColor: theme.colors.bg }]}>
+                        <View style={[styles.inputWrapper, { backgroundColor: theme.colors.bg, borderColor: theme.colors.border }]}>
                             <Ionicons
                                 name="lock-closed-outline"
                                 size={20}
@@ -231,14 +231,15 @@ const styles = StyleSheet.create({
     keyboardView: { flex: 1 },
     scroll: { flexGrow: 1, paddingHorizontal: 24, paddingVertical: 20 },
     backBtn: { marginBottom: 16, alignSelf: 'flex-start' },
-    title: { fontSize: 28, fontWeight: '800' },
+    title: { fontSize: 28, fontWeight: '800', letterSpacing: -0.5 },
     subtitle: { fontSize: 15, marginTop: 4, marginBottom: 24 },
-    formCard: { borderRadius: 24, padding: 24 },
+    formCard: { borderRadius: 22, padding: 22, borderWidth: 1 },
     inputWrapper: {
         flexDirection: 'row',
         alignItems: 'center',
         borderRadius: 14,
         height: 54,
+        borderWidth: 1,
         marginBottom: 16,
         paddingHorizontal: 16,
     },

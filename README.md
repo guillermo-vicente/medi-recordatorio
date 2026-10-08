@@ -51,6 +51,22 @@ npx expo start --clear
 > npx expo start --clear --tunnel
 > ```
 
+### Ejecutar en navegador
+
+Para revisar la interfaz sin conectar un celular, inicia Expo para web:
+
+```bash
+npx expo start --web
+```
+
+También puedes usar `npm run web`. La vista web permite revisar colores y distribución; el teclado y las notificaciones pueden comportarse distinto que en Android o iOS.
+
+### Verificar TypeScript
+
+```bash
+npx tsc --noEmit
+```
+
 ### Correr los tests
 
 ```bash
@@ -75,6 +91,24 @@ Tests:       19 passed, 19 total
 
 ## Funcionalidades
 
+### Evolución posterior al primer parcial
+
+- Cada medicamento admite indicaciones opcionales para la persona que lo toma o quien la cuida, y se puede editar sin volver a crearlo.
+- Las tomas se registran como realizadas u omitidas, con fecha. La pantalla muestra el registro más reciente y conserva los 100 eventos más recientes por medicamento.
+- Al registrar una toma realizada u omitida, se calcula la siguiente fecha desde ese momento y se programa el recordatorio según la frecuencia configurada.
+- Al crear un medicamento se puede elegir «Prueba 15 s» para comprobar rápidamente el aviso; esta opción solo adelanta la primera notificación y no cambia la frecuencia de las tomas siguientes.
+- Al editar o eliminar un medicamento, se actualiza o cancela su notificación pendiente cuando la plataforma lo permite.
+- Login y registro se desplazan con el teclado abierto. En Android se configura el ajuste de la ventana para mantener visibles los campos.
+- La interfaz usa una paleta verde azulada y menta, tarjetas más claras y componentes coherentes entre los temas claro y oscuro.
+
+### Alcance y limitaciones del prototipo
+
+- Las cuentas y los medicamentos se guardan localmente. El modo cuidador funciona en la misma cuenta y dispositivo; todavía no hay perfiles de cuidador ni sincronización entre dispositivos.
+- La autenticación es demostrativa: no existe un servidor y el token es simulado. Las contraseñas se guardan sin cifrar en AsyncStorage; no usar datos reales de salud con este prototipo.
+- Si el permiso de notificaciones se deniega, el medicamento se guarda pero no se programa el aviso. El fallback de Expo Go usa un temporizador local y no es fiable si se cierra la app.
+- Las indicaciones son notas ingresadas por el usuario; la app no recomienda ni valida instrucciones médicas.
+
+
 ### Autenticación local
 
 - Registro con nombre, email y contraseña (validación de formato y coincidencia).
@@ -89,9 +123,9 @@ Tests:       19 passed, 19 total
 
 - Alta de medicamentos con nombre, dosis, frecuencia (4h / 6h / 8h / 12h / 24h) y próxima toma.
 
-- Lista con estado por medicamento (pendiente / tomado) con colores.
+- Lista con estado de la toma (pendiente / tomada / omitida) y colores.
 
-- Marcar como tomado con un toque.
+- Registrar una toma como realizada, con confirmación.
 
 - Eliminar medicamento con confirmación.
 
@@ -124,6 +158,8 @@ Tests:       19 passed, 19 total
 ---
 
 ## Capturas
+
+> Estas capturas corresponden a la versión original del primer parcial y se conservan sin cambios. Más adelante se agregarán capturas nuevas para documentar y comparar la interfaz actualizada.
 
 ### Autenticación
 

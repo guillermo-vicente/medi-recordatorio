@@ -37,7 +37,7 @@ export default function ProfileScreen() {
           Perfil
         </Text>
 
-        <View style={[styles.userCard, { backgroundColor: theme.colors.card }]}>
+        <View style={[styles.userCard, { backgroundColor: theme.colors.card, borderColor: theme.colors.border }]}>
           <View style={[styles.avatar, { backgroundColor: theme.colors.primary }]}>
             <Ionicons name="person" size={36} color="#FFF" />
           </View>
@@ -55,7 +55,7 @@ export default function ProfileScreen() {
           PREFERENCIAS
         </Text>
 
-        <View style={[styles.groupCard, { backgroundColor: theme.colors.card }]}>
+        <View style={[styles.groupCard, { backgroundColor: theme.colors.card, borderColor: theme.colors.border }]}>
           <View style={styles.settingRow}>
             <View
               style={[
@@ -122,8 +122,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     padding: 20,
-    borderRadius: 20,
     marginBottom: 24,
+    borderWidth: 1,
+    borderRadius: 22,
   },
   avatar: {
     width: 72,
@@ -145,6 +146,7 @@ const styles = StyleSheet.create({
   },
   groupCard: {
     borderRadius: 16,
+    borderWidth: 1,
     marginBottom: 24,
     overflow: 'hidden',
   },

@@ -80,17 +80,22 @@ export default function HomeScreen() {
     const renderItem = useCallback(
         ({ item }: { item: Medicamento }) => {
             const meta = getEstadoMeta(item.proximaToma <= Date.now() ? 'pendiente' : item.estado);
+            const statusColor = meta.key === 'tomado'
+                ? theme.colors.success
+                : meta.key === 'omitido'
+                    ? theme.colors.danger
+                    : theme.colors.warning;
             const ultimoRegistro = item.historialTomas?.[item.historialTomas.length - 1];
 
             return (
                 <View
                     style={[
                         styles.card,
-                        { backgroundColor: theme.colors.card, borderLeftColor: meta.color },
+                        { backgroundColor: theme.colors.card, borderLeftColor: statusColor, borderColor: theme.colors.border },
                     ]}
                 >
-                    <View style={[styles.cardIcon, { backgroundColor: meta.color + '1A' }]}>
-                        <Ionicons name="medical" size={24} color={meta.color} />
+                    <View style={[styles.cardIcon, { backgroundColor: statusColor + '18' }]}>
+                        <Ionicons name="medical-outline" size={23} color={statusColor} />
                     </View>
                     <View style={styles.cardContent}>
                         <View style={styles.cardHeader}>
@@ -100,7 +105,7 @@ export default function HomeScreen() {
                             >
                                 {item.nombre}
                             </Text>
-                            <View style={[styles.badge, { backgroundColor: meta.color }]}>
+                            <View style={[styles.badge, { backgroundColor: statusColor }]}>
                                 <Text style={styles.badgeText}>{meta.label}</Text>
                             </View>
                         </View>
@@ -115,20 +120,21 @@ export default function HomeScreen() {
                         <Text style={[styles.cardMeta, { color: theme.colors.subtext }]}>
                             Próxima: {new Date(item.proximaToma).toLocaleString()}
                         </Text>
+                        {ultimoRegistro || item.ultimaToma ? (
                             <Text style={[styles.cardMeta, { color: theme.colors.subtext }]}>
                                 Último registro: {ultimoRegistro?.estado ?? 'tomado'} · {new Date(ultimoRegistro?.fecha ?? item.ultimaToma!).toLocaleString()}
                             </Text>
                         ) : null}
                         <View style={styles.actionsRow}>
                             <TouchableOpacity
-                                style={[styles.actionButton, { borderColor: theme.colors.border }]}
+                                style={[styles.actionButton, styles.primaryAction, { backgroundColor: theme.colors.primary }]}
                                 onPress={() => handleMarkTaken(item)}
                             >
-                                <Ionicons name="checkmark-circle-outline" size={17} color={theme.colors.primary} />
-                                <Text style={[styles.actionText, { color: theme.colors.primary }]}>Marcar toma</Text>
+                                <Ionicons name="checkmark-circle-outline" size={17} color="#FFFFFF" />
+                                <Text style={[styles.actionText, styles.primaryActionText]}>Marcar tomada</Text>
                             </TouchableOpacity>
                             <TouchableOpacity
-                                style={[styles.actionButton, { borderColor: theme.colors.border }]}
+                                style={[styles.actionButton, { borderColor: `${theme.colors.danger}66`, backgroundColor: `${theme.colors.danger}12` }]}
                                 onPress={() => handleMarkMissed(item)}
                             >
                                 <Ionicons name="close-circle-outline" size={17} color={theme.colors.danger} />
@@ -165,12 +171,22 @@ export default function HomeScreen() {
                 <LoadingState
                     message="Cargando medicamentos..."
                     color={theme.colors.primary}
+                    textColor={theme.colors.subtext}
                 />
             );
         }
 
         if (error) {
-            return <ErrorState message={error} onRetry={refresh} />;
+            return (
+                <ErrorState
+                    message={error}
+                    onRetry={refresh}
+                    color={theme.colors.primary}
+                    dangerColor={theme.colors.danger}
+                    textColor={theme.colors.text}
+                    mutedColor={theme.colors.subtext}
+                />
+            );
         }
 
         return (
@@ -192,6 +208,10 @@ export default function HomeScreen() {
                 }
                 ListEmptyComponent={
                     <EmptyState
+                        icon="medkit-outline"
+                        color={theme.colors.primary}
+                        titleColor={theme.colors.text}
+                        subtitleColor={theme.colors.subtext}
                         emoji="💊"
                         title="Sin medicamentos"
                         subtitle="Tocá el botón + para agregar tu primer medicamento"
@@ -207,12 +227,18 @@ export default function HomeScreen() {
             style={[styles.container, { backgroundColor: theme.colors.bg }]}
             edges={['top']}
         >
-            <View style={styles.header}>
-                <Text style={[styles.greeting, { color: theme.colors.subtext }]}>
-                    Hola,
-                </Text>
-                <Text style={[styles.title, { color: theme.colors.text }]}>
-                    {user?.name ?? 'Usuario'}
+            <View style={[styles.header, { backgroundColor: theme.colors.banner }]}>
+                <View style={styles.headerTop}>
+                    <View style={styles.headerText}>
+                        <Text style={styles.greeting}>TU RUTINA, MÁS SIMPLE</Text>
+                        <Text style={styles.title}>Hola, {user?.name ?? 'Usuario'}</Text>
+                    </View>
+                    <View style={styles.headerIcon}>
+                        <Ionicons name="heart-outline" size={25} color="#FFFFFF" />
+                    </View>
+                </View>
+                <Text style={styles.headerCaption}>
+                    {medicamentos.length} {medicamentos.length === 1 ? 'medicamento' : 'medicamentos'} en seguimiento
                 </Text>
             </View>
 
@@ -232,12 +258,20 @@ export default function HomeScreen() {
 const styles = StyleSheet.create({
     container: { flex: 1 },
     header: {
-        paddingHorizontal: 24,
-        paddingTop: 16,
-        paddingBottom: 12,
+        marginHorizontal: 20,
+        marginTop: 12,
+        marginBottom: 14,
+        paddingHorizontal: 20,
+        paddingTop: 18,
+        paddingBottom: 18,
+        borderRadius: 22,
     },
-    greeting: { fontSize: 14, fontWeight: '500' },
-    title: { fontSize: 26, fontWeight: '800', marginTop: 2 },
+    headerTop: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+    headerText: { flex: 1 },
+    greeting: { fontSize: 10, fontWeight: '700', letterSpacing: 1.1, color: 'rgba(255,255,255,0.76)' },
+    title: { fontSize: 23, fontWeight: '800', color: '#FFFFFF', marginTop: 5 },
+    headerCaption: { color: 'rgba(255,255,255,0.86)', fontSize: 13, marginTop: 12 },
+    headerIcon: { width: 48, height: 48, borderRadius: 16, backgroundColor: 'rgba(255,255,255,0.14)', alignItems: 'center', justifyContent: 'center' },
     listContent: {
         paddingHorizontal: 20,
         paddingBottom: 100,
@@ -249,7 +283,14 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         borderRadius: 16,
         padding: 16,
+        borderWidth: 1,
         borderLeftWidth: 4,
+        borderColor: '#DDEAE7',
+        shadowColor: '#102326',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.04,
+        shadowRadius: 8,
+        elevation: 1,
     },
     cardIcon: {
         width: 48,
@@ -271,7 +312,9 @@ const styles = StyleSheet.create({
     cardNote: { fontSize: 13, marginTop: 6, lineHeight: 18 },
     cardMeta: { fontSize: 11, marginTop: 6, lineHeight: 16 },
     actionsRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 10 },
-    actionButton: { flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 9, paddingVertical: 5, borderWidth: 1, borderRadius: 8 },
+    actionButton: { minHeight: 40, flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 11, borderWidth: 1, borderRadius: 12 },
+    primaryAction: { borderColor: 'transparent' },
+    primaryActionText: { color: '#FFFFFF' },
     actionText: { fontSize: 12, fontWeight: '600' },
     badge: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 6 },
     badgeText: {

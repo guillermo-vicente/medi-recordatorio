@@ -4,17 +4,28 @@ import { Ionicons } from '@expo/vector-icons';
 interface Props {
   message: string;
   onRetry?: () => void;
+  color?: string;
+  dangerColor?: string;
+  textColor?: string;
+  mutedColor?: string;
 }
 
-export function ErrorState({ message, onRetry }: Props) {
+export function ErrorState({
+  message,
+  onRetry,
+  color = '#148A83',
+  dangerColor = '#C84C59',
+  textColor = '#183A40',
+  mutedColor = '#668087',
+}: Props) {
   return (
     <View style={styles.container}>
-      <Ionicons name="alert-circle-outline" size={56} color="#FF6584" />
-      <Text style={styles.title}>Algo salio mal</Text>
-      <Text style={styles.message}>{message}</Text>
+      <Ionicons name="alert-circle-outline" size={52} color={dangerColor} />
+      <Text style={[styles.title, { color: textColor }]}>Algo salió mal</Text>
+      <Text style={[styles.message, { color: mutedColor }]}>{message}</Text>
       {onRetry && (
         <TouchableOpacity
-          style={styles.retryBtn}
+          style={[styles.retryBtn, { backgroundColor: color }]}
           onPress={onRetry}
           activeOpacity={0.8}
         >
@@ -34,29 +45,16 @@ const styles = StyleSheet.create({
     padding: 32,
     gap: 8,
   },
-  title: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: '#1A1A2E',
-  },
-  message: {
-    fontSize: 14,
-    color: '#9E9E9E',
-    textAlign: 'center',
-  },
+  title: { fontSize: 18, fontWeight: '700' },
+  message: { fontSize: 14, textAlign: 'center' },
   retryBtn: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-    backgroundColor: '#6C63FF',
     paddingVertical: 12,
     paddingHorizontal: 24,
     borderRadius: 12,
     marginTop: 12,
   },
-  retryText: {
-    color: '#FFF',
-    fontWeight: '700',
-    fontSize: 15,
-  },
+  retryText: { color: '#FFF', fontWeight: '700', fontSize: 15 },
 });

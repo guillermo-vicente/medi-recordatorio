@@ -78,12 +78,12 @@ export default function LoginScreen() {
           </Text>
         </View>
 
-        <View style={[styles.formCard, { backgroundColor: theme.colors.card }]}>
+        <View style={[styles.formCard, { backgroundColor: theme.colors.card, borderColor: theme.colors.border }]}>
           <Text style={[styles.formTitle, { color: theme.colors.text }]}>
             Iniciar Sesion
           </Text>
 
-          <View style={[styles.inputWrapper, { backgroundColor: theme.colors.bg }]}>
+          <View style={[styles.inputWrapper, { backgroundColor: theme.colors.bg, borderColor: theme.colors.border }]}>
             <Ionicons
               name="mail-outline"
               size={20}
@@ -105,7 +105,7 @@ export default function LoginScreen() {
             />
           </View>
 
-          <View style={[styles.inputWrapper, { backgroundColor: theme.colors.bg }]}>
+          <View style={[styles.inputWrapper, { backgroundColor: theme.colors.bg, borderColor: theme.colors.border }]}>
             <Ionicons
               name="lock-closed-outline"
               size={20}
@@ -186,24 +186,30 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   scrollContent: { flexGrow: 1, justifyContent: 'center', paddingHorizontal: 24, paddingVertical: 24 },
-  header: { alignItems: 'center', marginBottom: 28 },
+  header: { alignItems: 'center', marginBottom: 26 },
   logoContainer: {
-    width: 88,
-    height: 88,
+    width: 76,
+    height: 76,
     borderRadius: 24,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 16,
+    marginBottom: 14,
+    shadowColor: '#102326',
+    shadowOffset: { width: 0, height: 5 },
+    shadowOpacity: 0.14,
+    shadowRadius: 10,
+    elevation: 4,
   },
-  title: { fontSize: 28, fontWeight: '800' },
-  subtitle: { fontSize: 15, marginTop: 4 },
-  formCard: { borderRadius: 24, padding: 24 },
+  title: { fontSize: 27, fontWeight: '800', letterSpacing: -0.5 },
+  subtitle: { fontSize: 14, marginTop: 5 },
+  formCard: { borderRadius: 22, padding: 22, borderWidth: 1 },
   formTitle: { fontSize: 18, fontWeight: '700', marginBottom: 20 },
   inputWrapper: {
     flexDirection: 'row',
     alignItems: 'center',
     borderRadius: 14,
     height: 54,
+    borderWidth: 1,
     marginBottom: 16,
     paddingHorizontal: 16,
   },

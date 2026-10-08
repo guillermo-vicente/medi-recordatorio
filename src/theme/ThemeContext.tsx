@@ -34,16 +34,16 @@ export function AppThemeProvider({ children }: { children: React.ReactNode }) {
             ...MD3DarkTheme,
             colors: {
               ...MD3DarkTheme.colors,
-              primary: '#bb86fc',
-              secondary: '#03dac6',
+              primary: '#55C7B3',
+              secondary: '#A4DCCB',
             },
           }
         : {
             ...MD3LightTheme,
             colors: {
               ...MD3LightTheme.colors,
-              primary: '#6C63FF',
-              secondary: '#03dac6',
+              primary: '#148A83',
+              secondary: '#72B7A8',
             },
           },
     [isDark]

@@ -25,8 +25,10 @@ import { notificationService } from '../../src/features/notifications/notificati
 import { showAlert } from '../../src/utils/dialogs';
 
 function parseHorariosDiarios(input: string): { horarios: string[]; error?: string } {
+  const maxHorarios = 12;
   const values = input.split(/[\n,;]/).map((item) => item.trim()).filter(Boolean);
   if (!values.length) return { horarios: [], error: 'Agregá al menos un horario diario.' };
+  if (values.length > maxHorarios) return { horarios: [], error: `Podés indicar hasta ${maxHorarios} horarios por día.` };
   const normalized: string[] = [];
   for (const value of values) {
     const match = value.match(/^(\d{1,2}):(\d{2})$/);
@@ -54,10 +56,11 @@ export default function NuevoMedicamentoScreen() {
   const [momentoComida, setMomentoComida] = useState<Medicamento['momentoComida']>();
   const [observaciones, setObservaciones] = useState('');
   const [personaId, setPersonaId] = useState('');
-  const [frecuenciaIdx, setFrecuenciaIdx] = useState(2);
+  const [frecuenciaIdx, setFrecuenciaIdx] = useState(-1);
   const [tipoHorario, setTipoHorario] = useState<'intervalo' | 'diario'>('intervalo');
   const [horariosTexto, setHorariosTexto] = useState('');
   const [avisoPrueba, setAvisoPrueba] = useState(false);
+  const [mostrarDetalles, setMostrarDetalles] = useState(false);
   const [errors, setErrors] = useState<string[]>([]);
   const [submitting, setSubmitting] = useState(false);
   const editing = Boolean(id);
@@ -75,7 +78,9 @@ export default function NuevoMedicamentoScreen() {
   setNombre(item.nombre);
   setDosis(item.dosis);
   setMomentoComida(item.momentoComida);
-  setObservaciones(item.observaciones ?? item.indicaciones ?? '');
+  const savedObservaciones = item.observaciones ?? item.indicaciones ?? '';
+  setObservaciones(savedObservaciones);
+  setMostrarDetalles(Boolean(item.momentoComida || savedObservaciones));
   setPersonaId(item.personaId ?? getOwnPersonaId(user?.email ?? ''));
   setTipoHorario(item.tipoHorario ?? 'intervalo');
   setHorariosTexto(item.horariosDiarios?.join(', ') ?? '');
@@ -96,6 +101,9 @@ export default function NuevoMedicamentoScreen() {
     } else if (!personas.some((p) => p.id === personaId)) {
       errs.push('La persona seleccionada no está disponible. Volvé a intentar.');
     }
+    if (tipoHorario === 'intervalo' && frecuenciaIdx < 0) {
+      errs.push('Elegí el intervalo indicado para este medicamento.');
+    }
     const parsedSchedule = tipoHorario === 'diario'
       ? parseHorariosDiarios(horariosTexto)
       : { horarios: [] as string[] };
@@ -107,12 +115,12 @@ export default function NuevoMedicamentoScreen() {
     setErrors([]);
     setSubmitting(true);
     try {
-      const frecuencia = FRECUENCIAS[frecuenciaIdx];
+      const frecuenciaHoras = FRECUENCIAS[frecuenciaIdx]?.horas ?? FRECUENCIAS[2].horas;
       const now = Date.now();
       const horariosDiarios = tipoHorario === 'diario' ? parsedSchedule.horarios : undefined;
       const proximaToma = tipoHorario === 'diario'
         ? calcularProximaTomaDiaria(horariosDiarios ?? [], now)
-        : now + frecuencia.horas * 60 * 60 * 1000;
+        : now + frecuenciaHoras * 60 * 60 * 1000;
       const data = {
         nombre: nombre.trim(),
         dosis: dosis.trim(),
@@ -122,7 +130,7 @@ export default function NuevoMedicamentoScreen() {
         tipoHorario,
         horariosDiarios,
         inicioHorario: tipoHorario === 'intervalo' ? now : undefined,
-        frecuenciaHoras: frecuencia.horas,
+        frecuenciaHoras,
         proximaToma,
         indicaciones: undefined,
         notificationIds: [] as string[],
@@ -261,45 +269,6 @@ export default function NuevoMedicamentoScreen() {
               </TouchableOpacity>
             </View>
 
-            <Text style={[styles.label, { color: theme.colors.subtext }]}>Momento indicado respecto de la comida</Text>
-            <Text style={[styles.helperText, { color: theme.colors.subtext }]}>Registrá lo que indicó el profesional de salud.</Text>
-            <View style={styles.chipsRow}>
-              {([
-                { value: 'antes', label: 'Antes' },
-                { value: 'durante', label: 'Durante' },
-                { value: 'despues', label: 'Después' },
-                { value: 'sin_indicar', label: 'Sin indicar' },
-              ] as const).map((option) => {
-                const selected = momentoComida === option.value;
-                return (
-                  <TouchableOpacity
-                    key={option.value}
-                    style={[styles.chip, { minHeight: 44, justifyContent: 'center', borderColor: selected ? theme.colors.primary : theme.colors.border, backgroundColor: selected ? theme.colors.primary : 'transparent' }]}
-                    onPress={() => setMomentoComida(selected ? undefined : option.value)}
-                    disabled={submitting}
-                    accessibilityRole="radio"
-                    accessibilityState={{ checked: selected }}
-                  >
-                    <Text style={[styles.chipText, { color: selected ? theme.colors.onPrimary : theme.colors.text }]}>{option.label}</Text>
-                  </TouchableOpacity>
-                );
-              })}
-            </View>
-
-            <Text style={[styles.label, { color: theme.colors.subtext }]}>Observaciones</Text>
-            <TextInput
-              style={[styles.notesInput, { color: theme.colors.text, backgroundColor: theme.colors.bg, borderColor: theme.colors.border }]}
-              placeholder="Anotá otros detalles que quieras recordar."
-              placeholderTextColor={theme.colors.subtext}
-              value={observaciones}
-              onChangeText={setObservaciones}
-              multiline
-              maxLength={500}
-              textAlignVertical="top"
-              editable={!submitting}
-              accessibilityLabel="Observaciones del medicamento"
-            />
-
             <Text style={[styles.label, { color: theme.colors.subtext }]}>Tipo de horario</Text>
             <View style={styles.chipsRow}>
               {([
@@ -325,6 +294,7 @@ export default function NuevoMedicamentoScreen() {
             {tipoHorario === 'intervalo' ? (
               <>
                 <Text style={[styles.label, { color: theme.colors.subtext }]}>Intervalo indicado</Text>
+                <Text style={[styles.helperText, { color: theme.colors.subtext }]}>Elegí el intervalo que indicó el profesional.</Text>
                 <View style={styles.chipsRow}>
                   {FRECUENCIAS.map((f, i) => {
                     const selected = frecuenciaIdx === i;
@@ -357,23 +327,79 @@ export default function NuevoMedicamentoScreen() {
                   editable={!submitting}
                   accessibilityLabel="Horarios diarios, separados por comas"
                 />
-                <Text style={[styles.helperText, { color: theme.colors.subtext }]}>Ingresá los horarios que te indicaron, separados por comas. Por ejemplo: 08:00, 14:00.</Text>
+                <Text style={[styles.helperText, { color: theme.colors.subtext }]}>Separalos por comas (por ejemplo, 08:00, 14:00). Hasta 12 horarios por día.</Text>
               </>
             )}
 
-            <View style={[styles.testToggle, { borderColor: theme.colors.border }]}>
-              <View style={styles.testToggleText}>
-                <Text style={[styles.testToggleTitle, { color: theme.colors.text }]}>Aviso de prueba en 15 segundos</Text>
-                <Text style={[styles.helperText, { color: theme.colors.subtext }]}>Envía un aviso extra para probar; no modifica el horario de este plan.</Text>
-              </View>
-              <Switch
-                value={avisoPrueba}
-                onValueChange={setAvisoPrueba}
-                trackColor={{ false: theme.colors.border, true: theme.colors.primary }}
+            <View style={[styles.optionalSection, { borderColor: theme.colors.border }]}>
+              <TouchableOpacity
+                style={styles.optionalHeader}
+                onPress={() => setMostrarDetalles((visible) => !visible)}
                 disabled={submitting}
-                accessibilityLabel="Enviar un aviso de prueba en 15 segundos"
-                accessibilityState={{ checked: avisoPrueba }}
-              />
+                accessibilityRole="button"
+                accessibilityLabel="Mostrar indicaciones, observaciones y aviso de prueba"
+                accessibilityState={{ expanded: mostrarDetalles }}
+              >
+                <View style={styles.optionalHeadingText}>
+                  <Text style={[styles.optionalTitle, { color: theme.colors.text }]}>Indicaciones y notas</Text>
+                  <Text style={[styles.helperText, { color: theme.colors.subtext }]}>Opcional · comida, observaciones y prueba</Text>
+                </View>
+                <Ionicons name={mostrarDetalles ? 'chevron-up' : 'chevron-down'} size={20} color={theme.colors.primary} />
+              </TouchableOpacity>
+              {mostrarDetalles ? (
+                <View style={styles.optionalContent}>
+                  <Text style={[styles.label, { color: theme.colors.subtext }]}>Momento indicado respecto de la comida</Text>
+                  <Text style={[styles.helperText, { color: theme.colors.subtext }]}>Anotá únicamente lo que indicó el profesional de salud.</Text>
+                  <View style={styles.chipsRow}>
+                    {([
+                      { value: 'antes', label: 'Antes' },
+                      { value: 'durante', label: 'Durante' },
+                      { value: 'despues', label: 'Después' },
+                    ] as const).map((option) => {
+                      const selected = momentoComida === option.value;
+                      return (
+                        <TouchableOpacity
+                          key={option.value}
+                          style={[styles.chip, { minHeight: 44, justifyContent: 'center', borderColor: selected ? theme.colors.primary : theme.colors.border, backgroundColor: selected ? theme.colors.primary : 'transparent' }]}
+                          onPress={() => setMomentoComida(selected ? undefined : option.value)}
+                          disabled={submitting}
+                          accessibilityRole="radio"
+                          accessibilityState={{ checked: selected }}
+                        >
+                          <Text style={[styles.chipText, { color: selected ? theme.colors.onPrimary : theme.colors.text }]}>{option.label}</Text>
+                        </TouchableOpacity>
+                      );
+                    })}
+                  </View>
+                  <Text style={[styles.label, { color: theme.colors.subtext }]}>Observaciones</Text>
+                  <TextInput
+                    style={[styles.notesInput, { color: theme.colors.text, backgroundColor: theme.colors.bg, borderColor: theme.colors.border }]}
+                    placeholder="Otros detalles que quieras recordar."
+                    placeholderTextColor={theme.colors.subtext}
+                    value={observaciones}
+                    onChangeText={setObservaciones}
+                    multiline
+                    maxLength={500}
+                    textAlignVertical="top"
+                    editable={!submitting}
+                    accessibilityLabel="Observaciones del medicamento"
+                  />
+                  <View style={[styles.testToggle, { borderColor: theme.colors.border }]}>
+                    <View style={styles.testToggleText}>
+                      <Text style={[styles.testToggleTitle, { color: theme.colors.text }]}>Aviso de prueba en 15 segundos</Text>
+                      <Text style={[styles.helperText, { color: theme.colors.subtext }]}>Es un aviso extra; no modifica el plan.</Text>
+                    </View>
+                    <Switch
+                      value={avisoPrueba}
+                      onValueChange={setAvisoPrueba}
+                      trackColor={{ false: theme.colors.border, true: theme.colors.primary }}
+                      disabled={submitting}
+                      accessibilityLabel="Enviar un aviso de prueba en 15 segundos"
+                      accessibilityState={{ checked: avisoPrueba }}
+                    />
+                  </View>
+                </View>
+              ) : null}
             </View>
 
             {errors.length > 0 && (
@@ -459,6 +485,11 @@ const styles = StyleSheet.create({
   testToggle: { flexDirection: 'row', alignItems: 'center', gap: 12, borderWidth: 1, borderRadius: 14, padding: 14, marginTop: 8 },
   testToggleText: { flex: 1, gap: 4 },
   testToggleTitle: { fontSize: 15, fontWeight: '700' },
+  optionalSection: { borderWidth: 1, borderRadius: 14, marginTop: 8, overflow: 'hidden' },
+  optionalHeader: { minHeight: 62, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12, paddingHorizontal: 14, paddingVertical: 8 },
+  optionalHeadingText: { flex: 1, gap: 4 },
+  optionalTitle: { fontSize: 15, fontWeight: '700' },
+  optionalContent: { paddingHorizontal: 14, paddingBottom: 14, gap: 8 },
   errorContainer: { marginTop: 8 },
   errorText: { fontSize: 13, fontWeight: '500', marginBottom: 4 },
   saveBtn: {

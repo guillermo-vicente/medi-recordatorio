@@ -1,8 +1,11 @@
 import { useCallback, useEffect, useState } from 'react';
+import type { ComponentProps } from 'react';
 import {
     FlatList,
+    Modal,
+    Pressable,
     RefreshControl,
-  ScrollView,
+    ScrollView,
     StyleSheet,
     Text,
     TouchableOpacity,
@@ -18,7 +21,7 @@ import { ESTADOS_TOMA } from '../../src/config/constants';
 import { LoadingState } from '../../src/components/ui/LoadingState';
 import { ErrorState } from '../../src/components/ui/ErrorState';
 import { EmptyState } from '../../src/components/ui/EmptyState';
-import { useRouter, useFocusEffect } from 'expo-router'; 
+import { useRouter, useFocusEffect } from 'expo-router';
 import { showConfirm } from '../../src/utils/dialogs';
 import { usePersonas } from '../../src/features/personas/usePersonas';
 import { getOwnPersonaId } from '../../src/features/personas/personaService';
@@ -63,6 +66,7 @@ export default function HomeScreen() {
     } = useMedicamentos();
     const { personas, reload: reloadPersonas } = usePersonas();
     const [personaActivaId, setPersonaActivaId] = useState<string | null>(null);
+    const [accionesMedicamento, setAccionesMedicamento] = useState<Medicamento | null>(null);
 
     useEffect(() => {
         if (!personas.length) return;
@@ -76,7 +80,7 @@ export default function HomeScreen() {
 
     const router = useRouter();
 
-     // recarga la lista cada vez que el Home toma foco
+    // recarga la lista cada vez que el Home toma foco
     useFocusEffect(
         useCallback(() => {
             reloadSilently();
@@ -111,6 +115,18 @@ export default function HomeScreen() {
         });
         if (confirmed) await markAsMissed(item.id);
     }, [markAsMissed]);
+
+    const handleRemove = useCallback(async (item: Medicamento) => {
+        setAccionesMedicamento(null);
+        const confirmed = await showConfirm({
+            title: 'Eliminar medicamento',
+            message: `¿Querés eliminar ${item.nombre}?`,
+            confirmText: 'Eliminar',
+            cancelText: 'Cancelar',
+            destructive: true,
+        });
+        if (confirmed) await remove(item.id);
+    }, [remove]);
 
     const renderItem = useCallback(
         ({ item }: { item: Medicamento }) => {
@@ -159,68 +175,45 @@ export default function HomeScreen() {
                             <Text style={[styles.cardNote, { color: theme.colors.text }]}>Observaciones: {observaciones}</Text>
                         ) : null}
                         <Text style={[styles.cardMeta, { color: theme.colors.subtext }]}>
-                            Próximo aviso: {new Date(proximaToma).toLocaleString()}
+                            Próximo aviso: {new Date(proximaToma).toLocaleString('es-AR', { dateStyle: 'short', timeStyle: 'short' })}
                         </Text>
                         {ultimoRegistro || item.ultimaToma ? (
                             <Text style={[styles.cardMeta, { color: theme.colors.subtext }]}>
-                                Último registro: {ultimoRegistro?.estado ?? 'tomado'} · {new Date(ultimoRegistro?.fecha ?? item.ultimaToma!).toLocaleString()}
+                                Último registro: {ultimoRegistro?.estado ?? 'tomado'} · {new Date(ultimoRegistro?.fecha ?? item.ultimaToma!).toLocaleString('es-AR', { dateStyle: 'short', timeStyle: 'short' })}
                             </Text>
                         ) : null}
                         <View style={styles.actionsRow}>
                             <TouchableOpacity
-                                style={[styles.actionButton, styles.primaryAction, { backgroundColor: theme.colors.primary }]}
+                                style={[
+                                    styles.actionButton,
+                                    styles.primaryAction,
+                                    { backgroundColor: theme.colors.primary },
+                                ]}
                                 onPress={() => handleMarkTaken(item)}
                                 accessibilityRole="button"
                                 accessibilityLabel={`Registrar toma realizada de ${item.nombre}`}
                             >
                                 <Ionicons name="checkmark-circle-outline" size={17} color={theme.colors.onPrimary} />
-                                <Text style={[styles.actionText, { color: theme.colors.onPrimary }]}>Marcar tomada</Text>
+                                <Text style={[styles.actionText, { color: theme.colors.onPrimary }]}>Registrar toma</Text>
                             </TouchableOpacity>
                             <TouchableOpacity
-                                style={[styles.actionButton, { borderColor: `${theme.colors.danger}66`, backgroundColor: `${theme.colors.danger}12` }]}
-                                onPress={() => handleMarkMissed(item)}
+                                style={[
+                                    styles.actionButton,
+                                    styles.moreAction,
+                                    { borderColor: theme.colors.border, backgroundColor: theme.colors.card },
+                                ]}
+                                onPress={() => setAccionesMedicamento(item)}
                                 accessibilityRole="button"
-                                accessibilityLabel={`Registrar toma omitida de ${item.nombre}`}
+                                accessibilityLabel={`Más acciones para ${item.nombre}`}
                             >
-                                <Ionicons name="close-circle-outline" size={17} color={theme.colors.danger} />
-                                <Text style={[styles.actionText, { color: theme.colors.danger }]}>Omitida</Text>
-                            </TouchableOpacity>
-                            <TouchableOpacity
-                                style={[styles.actionButton, { borderColor: theme.colors.border }]}
-                                onPress={() => router.push({ pathname: '/medicamento/nuevo', params: { id: item.id } })}
-                                accessibilityRole="button"
-                                accessibilityLabel={`Editar ${item.nombre}`}
-                            >
-                                <Ionicons name="create-outline" size={17} color={theme.colors.primary} />
-                                <Text style={[styles.actionText, { color: theme.colors.primary }]}>Editar</Text>
-                            </TouchableOpacity>
-                            <TouchableOpacity
-                                style={[styles.actionButton, { borderColor: theme.colors.border }]}
-                                onPress={() => router.push({ pathname: '../medicamento/[id]/historial', params: { id: item.id } })}
-                                accessibilityRole="button"
-                                accessibilityLabel={`Ver historial de ${item.nombre}`}
-                            >
-                                <Ionicons name="time-outline" size={17} color={theme.colors.primary} />
-                                <Text style={[styles.actionText, { color: theme.colors.primary }]}>Historial</Text>
-                            </TouchableOpacity>
-                            <TouchableOpacity
-                                style={[styles.actionButton, { borderColor: theme.colors.border }]}
-                                onPress={async () => {
-                                    const confirmed = await showConfirm({ title: 'Eliminar medicamento', message: `¿Querés eliminar ${item.nombre}?`, confirmText: 'Eliminar', cancelText: 'Cancelar', destructive: true });
-                                    if (confirmed) await remove(item.id);
-                                }}
-                                accessibilityRole="button"
-                                accessibilityLabel={`Eliminar ${item.nombre}`}
-                            >
-                                <Ionicons name="trash-outline" size={17} color={theme.colors.danger} />
-                                <Text style={[styles.actionText, { color: theme.colors.danger }]}>Eliminar</Text>
+                                <Ionicons name="ellipsis-horizontal" size={20} color={theme.colors.primary} />
                             </TouchableOpacity>
                         </View>
                     </View>
                 </View>
             );
         },
-        [theme, handleMarkTaken, handleMarkMissed, router, remove]
+        [theme, handleMarkTaken]
     );
 
     const renderContent = () => {
@@ -271,9 +264,12 @@ export default function HomeScreen() {
                         color={theme.colors.primary}
                         titleColor={theme.colors.text}
                         subtitleColor={theme.colors.subtext}
-                        emoji="💊"
                         title="Sin medicamentos"
-                        subtitle={`Tocá el botón + para agregar un medicamento${personaActiva ? ` para ${personaActiva.nombre}` : ''}`}
+                        subtitle={
+                            personaActiva
+                                ? `No hay medicamentos cargados para ${personaActiva.nombre}. Tocá el botón + para agregar el primero.`
+                                : 'Tocá el botón + para agregar un medicamento.'
+                        }
                     />
                 }
                 showsVerticalScrollIndicator={false}
@@ -287,29 +283,22 @@ export default function HomeScreen() {
             edges={['top']}
         >
             <View style={[styles.header, { backgroundColor: theme.colors.banner }]}>
-                <View style={styles.headerTop}>
-                    <View style={styles.headerText}>
-                        <Text style={styles.greeting}>TU RUTINA, MÁS SIMPLE</Text>
-                        <Text style={styles.title}>Hola, {user?.name ?? 'Usuario'}</Text>
-                    </View>
-                    <View style={styles.headerIcon}>
-                        <Ionicons name="heart-outline" size={25} color="#FFFFFF" />
-                    </View>
-                </View>
-                <Text style={styles.headerCaption}>
-            {personaActiva?.nombre ?? 'Cargando ficha'} · {medicamentosPersona.length} {medicamentosPersona.length === 1 ? 'medicamento' : 'medicamentos'}
-                </Text>
+                <Text style={styles.title}>Hola, {user?.name ?? 'Usuario'} 👋</Text>
             </View>
 
             <View style={styles.peopleSelector}>
                 <View style={styles.peopleSelectorHeader}>
-                    <Text style={[styles.peopleSelectorLabel, { color: theme.colors.subtext }]}>PERSONA</Text>
+                    <Text style={[styles.peopleSelectorLabel, { color: theme.colors.text }]}>
+                        Medicamentos de
+                    </Text>
                     <TouchableOpacity
                         onPress={() => router.push('../personas')}
+                        style={[styles.managePeopleButton, { backgroundColor: theme.colors.card, borderColor: theme.colors.border }]}
                         accessibilityRole="button"
                         accessibilityLabel="Administrar personas"
                     >
-                        <Text style={[styles.managePeopleText, { color: theme.colors.primary }]}>Administrar</Text>
+                        <Ionicons name="people-outline" size={19} color={theme.colors.primary} />
+                        <Text style={[styles.managePeopleText, { color: theme.colors.primary }]}>Fichas</Text>
                     </TouchableOpacity>
                 </View>
                 <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.peopleRow}>
@@ -349,8 +338,34 @@ export default function HomeScreen() {
                 accessibilityRole="button"
                 accessibilityLabel="Agregar medicamento"
             >
-                        <Ionicons name="add" size={28} color={theme.colors.onPrimary} />
+                <Ionicons name="add" size={28} color={theme.colors.onPrimary} />
             </TouchableOpacity>
+
+            <Modal
+                visible={Boolean(accionesMedicamento)}
+                transparent
+                animationType="slide"
+                onRequestClose={() => setAccionesMedicamento(null)}
+            >
+                <Pressable style={[styles.sheetBackdrop, { backgroundColor: theme.colors.overlay }]} onPress={() => setAccionesMedicamento(null)}>
+                    <Pressable style={[styles.actionSheet, { backgroundColor: theme.colors.card }]} onPress={(event) => event.stopPropagation()}>
+                        <View style={[styles.sheetHandle, { backgroundColor: theme.colors.border }]} />
+                        <Text style={[styles.sheetTitle, { color: theme.colors.text }]}>{accionesMedicamento?.nombre}</Text>
+                        <Text style={[styles.sheetSubtitle, { color: theme.colors.subtext }]}>Otras acciones</Text>
+                        {accionesMedicamento ? (
+                            <>
+                                <SheetAction icon="close-circle-outline" label="Registrar como omitida" color={theme.colors.danger} onPress={() => { const item = accionesMedicamento; setAccionesMedicamento(null); void handleMarkMissed(item); }} />
+                                <SheetAction icon="create-outline" label="Editar medicamento" color={theme.colors.primary} onPress={() => { const item = accionesMedicamento; setAccionesMedicamento(null); router.push({ pathname: '/medicamento/nuevo', params: { id: item.id } }); }} />
+                                <SheetAction icon="time-outline" label="Ver historial de tomas" color={theme.colors.primary} onPress={() => { const item = accionesMedicamento; setAccionesMedicamento(null); router.push({ pathname: '../medicamento/[id]/historial', params: { id: item.id } }); }} />
+                                <SheetAction icon="trash-outline" label="Eliminar medicamento" color={theme.colors.danger} onPress={() => { void handleRemove(accionesMedicamento); }} />
+                            </>
+                        ) : null}
+                        <TouchableOpacity style={[styles.sheetCancel, { borderColor: theme.colors.border }]} onPress={() => setAccionesMedicamento(null)} accessibilityRole="button">
+                            <Text style={[styles.sheetCancelText, { color: theme.colors.text }]}>Cerrar</Text>
+                        </TouchableOpacity>
+                    </Pressable>
+                </Pressable>
+            </Modal>
         </SafeAreaView>
     );
 }
@@ -362,20 +377,15 @@ const styles = StyleSheet.create({
         marginTop: 12,
         marginBottom: 14,
         paddingHorizontal: 20,
-        paddingTop: 18,
-        paddingBottom: 18,
-        borderRadius: 22,
+        paddingVertical: 16,
+        borderRadius: 20,
     },
-    headerTop: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-    headerText: { flex: 1 },
-    greeting: { fontSize: 12, fontWeight: '700', letterSpacing: 1.1, color: 'rgba(255,255,255,0.76)' },
-    title: { fontSize: 24, fontWeight: '800', color: '#FFFFFF', marginTop: 5 },
-    headerCaption: { color: 'rgba(255,255,255,0.86)', fontSize: 15, marginTop: 12 },
-    headerIcon: { width: 48, height: 48, borderRadius: 16, backgroundColor: 'rgba(255,255,255,0.14)', alignItems: 'center', justifyContent: 'center' },
-    peopleSelector: { paddingHorizontal: 20, marginBottom: 10 },
-    peopleSelectorHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 7 },
-    peopleSelectorLabel: { fontSize: 12, fontWeight: '700', letterSpacing: 1 },
-    managePeopleText: { fontSize: 14, fontWeight: '700', paddingVertical: 4 },
+    title: { fontSize: 22, fontWeight: '800', color: '#FFFFFF' },
+    peopleSelector: { paddingHorizontal: 20, marginBottom: 8 },
+    peopleSelectorHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 },
+    peopleSelectorLabel: { fontSize: 15, fontWeight: '700' },
+    managePeopleButton: { minHeight: 40, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingHorizontal: 12, borderRadius: 13, borderWidth: 1 },
+    managePeopleText: { fontSize: 14, fontWeight: '700' },
     peopleRow: { gap: 8, paddingBottom: 2 },
     personChip: { minHeight: 44, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 5, paddingHorizontal: 14, borderWidth: 1, borderRadius: 13 },
     personChipText: { fontSize: 15, fontWeight: '600' },
@@ -418,9 +428,10 @@ const styles = StyleSheet.create({
     cardSubtitle: { fontSize: 15 },
     cardNote: { fontSize: 15, marginTop: 6, lineHeight: 21 },
     cardMeta: { fontSize: 13, marginTop: 6, lineHeight: 19 },
-    actionsRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 10 },
-    actionButton: { minHeight: 44, flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 11, borderWidth: 1, borderRadius: 12 },
-    primaryAction: { borderColor: 'transparent' },
+    actionsRow: { flexDirection: 'row', gap: 8, marginTop: 12, alignItems: 'center' },
+    actionButton: { minHeight: 44, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingHorizontal: 13, borderWidth: 1, borderRadius: 12 },
+    primaryAction: { borderColor: 'transparent', flex: 1 },
+    moreAction: { minWidth: 48, paddingHorizontal: 0 },
     actionText: { fontSize: 14, fontWeight: '600' },
     badge: { paddingHorizontal: 9, paddingVertical: 5, borderRadius: 8 },
     badgeText: {
@@ -443,4 +454,22 @@ const styles = StyleSheet.create({
         shadowRadius: 8,
         elevation: 6,
     },
+    sheetBackdrop: { flex: 1, justifyContent: 'flex-end' },
+    actionSheet: { paddingHorizontal: 22, paddingTop: 12, paddingBottom: 28, borderTopLeftRadius: 24, borderTopRightRadius: 24, gap: 6 },
+    sheetHandle: { alignSelf: 'center', width: 42, height: 4, borderRadius: 2, marginBottom: 12 },
+    sheetTitle: { fontSize: 20, fontWeight: '800' },
+    sheetSubtitle: { fontSize: 14, marginBottom: 8 },
+    sheetAction: { minHeight: 52, flexDirection: 'row', alignItems: 'center', gap: 14, paddingHorizontal: 8 },
+    sheetActionText: { fontSize: 16, fontWeight: '600' },
+    sheetCancel: { minHeight: 48, borderWidth: 1, borderRadius: 13, alignItems: 'center', justifyContent: 'center', marginTop: 8 },
+    sheetCancelText: { fontSize: 15, fontWeight: '700' },
 });
+
+function SheetAction({ icon, label, color, onPress }: { icon: ComponentProps<typeof Ionicons>['name']; label: string; color: string; onPress: () => void }) {
+    return (
+        <TouchableOpacity style={styles.sheetAction} onPress={onPress} accessibilityRole="button" accessibilityLabel={label}>
+            <Ionicons name={icon} size={22} color={color} />
+            <Text style={[styles.sheetActionText, { color }]}>{label}</Text>
+        </TouchableOpacity>
+    );
+}

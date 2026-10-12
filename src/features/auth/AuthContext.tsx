@@ -13,6 +13,7 @@ import { storage } from '../../services/storage';
 import { STORAGE_KEYS } from '../../config/constants';
 import { notificationService } from '../notifications/notificationService';
 import { cancelMedicationSchedules, ensureMedicationSchedules } from '../notifications/syncMedicationNotifications';
+import { personaService } from '../personas/personaService';
 
 
 export interface AuthUser {
@@ -54,6 +55,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                     null
                 );
                 if (token && storedUser) {
+                    // Asegurar ficha propia antes de restaurar sesión
+                    await personaService.list(storedUser.email, storedUser.name).catch((error) => {
+                        console.warn('[personas] could not ensure own persona:', error);
+                    });
                     await ensureMedicationSchedules(storedUser).catch((error) => {
                         console.warn('[notifications] could not restore medication schedules:', error);
                     });
@@ -68,7 +73,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         bootstrap();
     }, []);
 
-
     const signIn = useCallback(async (email: string, password: string) => {
         const normalized = email.trim().toLowerCase();
         const users = await storage.get<StoredUser[]>(STORAGE_KEYS.USERS, []);
@@ -81,6 +85,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         const authUser: AuthUser = { email: found.email, name: found.name };
         await tokenStorage.set(`simulated_token_${normalized}`);
         await storage.set(STORAGE_KEYS.CURRENT_USER, authUser);
+
+        // Asegurar que la ficha propia exista
+        await personaService.list(authUser.email, authUser.name).catch((error) => {
+            console.warn('[personas] could not ensure own persona:', error);
+        });
+
         await ensureMedicationSchedules(authUser).catch((error) => {
             console.warn('[notifications] could not restore medication schedules:', error);
         });
@@ -100,6 +110,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             const authUser: AuthUser = { email: newUser.email, name: newUser.name };
             await tokenStorage.set(`simulated_token_${normalized}`);
             await storage.set(STORAGE_KEYS.CURRENT_USER, authUser);
+
+            // Crear la ficha propia del usuario
+            await personaService.list(authUser.email, authUser.name).catch((error) => {
+                console.warn('[personas] could not create own persona:', error);
+            });
             setUser(authUser);
         },
         []

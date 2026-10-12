@@ -86,7 +86,11 @@ export default function NuevoMedicamentoScreen() {
     const errs: string[] = [];
     if (!nombre.trim()) errs.push('El nombre es requerido');
     if (!dosis.trim()) errs.push('La dosis es requerida');
-    if (!personaId) errs.push('Seleccioná una persona para esta ficha.');
+    if (!personaId) {
+      errs.push('Seleccioná una persona para esta ficha.');
+    } else if (!personas.some((p) => p.id === personaId)) {
+      errs.push('La persona seleccionada no está disponible. Volvé a intentar.');
+    }
     const parsedSchedule = tipoHorario === 'diario'
       ? parseHorariosDiarios(horariosTexto)
       : { horarios: [] as string[] };

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   KeyboardAvoidingView,
   Platform,
@@ -61,22 +61,27 @@ export default function NuevoMedicamentoScreen() {
   const [errors, setErrors] = useState<string[]>([]);
   const [submitting, setSubmitting] = useState(false);
   const editing = Boolean(id);
+  const initialLoadDone = useRef<string | null>(null);
 
   useFocusEffect(useCallback(() => { void reloadPersonas(); }, [reloadPersonas]));
 
   useEffect(() => {
-    const item = medicamentos.find((med) => med.id === id);
-    if (!item) return;
-    setNombre(item.nombre);
-    setDosis(item.dosis);
-    setMomentoComida(item.momentoComida);
-    setObservaciones(item.observaciones ?? item.indicaciones ?? '');
-    setPersonaId(item.personaId ?? getOwnPersonaId(user?.email ?? ''));
-    setTipoHorario(item.tipoHorario ?? 'intervalo');
-    setHorariosTexto(item.horariosDiarios?.join(', ') ?? '');
-    const idx = FRECUENCIAS.findIndex((frecuencia) => frecuencia.horas === item.frecuenciaHoras);
-    if (idx >= 0) setFrecuenciaIdx(idx);
-  }, [id, medicamentos, user?.email]);
+  // Cargar los datos del medicamento solo una vez por id.
+  // Sin esto, cada vez que "medicamentos" cambia el efecto vuelve a correr y sobreescribe
+  if (initialLoadDone.current === id) return;
+  const item = medicamentos.find((med) => med.id === id);
+  if (!item) return;
+  initialLoadDone.current = id ?? null;
+  setNombre(item.nombre);
+  setDosis(item.dosis);
+  setMomentoComida(item.momentoComida);
+  setObservaciones(item.observaciones ?? item.indicaciones ?? '');
+  setPersonaId(item.personaId ?? getOwnPersonaId(user?.email ?? ''));
+  setTipoHorario(item.tipoHorario ?? 'intervalo');
+  setHorariosTexto(item.horariosDiarios?.join(', ') ?? '');
+  const idx = FRECUENCIAS.findIndex((frecuencia) => frecuencia.horas === item.frecuenciaHoras);
+  if (idx >= 0) setFrecuenciaIdx(idx);
+}, [id, medicamentos, user?.email]);
 
   useEffect(() => {
     if (!editing) setPersonaId(personaIdParam ?? (user?.email ? getOwnPersonaId(user.email) : ''));

@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { FlatList, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { SectionList, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
@@ -9,6 +9,52 @@ import { LoadingState } from '../../../src/components/ui/LoadingState';
 import { useMedicamentos } from '../../../src/features/medicamentos/useMedicamentos';
 import { usePersonas } from '../../../src/features/personas/usePersonas';
 import { useTheme } from '../../../src/theme/useTheme';
+
+type TomaHistorial = { fecha: number; estado: 'tomado' | 'omitido' };
+type HistorialSection = {
+  key: string;
+  title: string;
+  summary: string;
+  data: TomaHistorial[];
+};
+
+function getLocalDateKey(timestamp: number): string {
+  const date = new Date(timestamp);
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
+function getSectionTitle(key: string, now = new Date()): string {
+  const [year, month, day] = key.split('-').map(Number);
+  const date = new Date(year, month - 1, day);
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const yesterday = new Date(today);
+  yesterday.setDate(yesterday.getDate() - 1);
+  const dateKey = getLocalDateKey(date.getTime());
+  if (dateKey === getLocalDateKey(today.getTime())) return 'Hoy';
+  if (dateKey === getLocalDateKey(yesterday.getTime())) return 'Ayer';
+
+  const options: Intl.DateTimeFormatOptions = {
+    weekday: 'long',
+    day: 'numeric',
+    month: 'long',
+  };
+  if (year !== now.getFullYear()) options.year = 'numeric';
+  const label = date.toLocaleDateString('es-AR', options);
+  return label.charAt(0).toLocaleUpperCase('es-AR') + label.slice(1);
+}
+
+function getSectionSummary(tomas: TomaHistorial[]): string {
+  const realizadas = tomas.filter((toma) => toma.estado === 'tomado').length;
+  const omitidas = tomas.length - realizadas;
+  const parts = [
+    realizadas ? `${realizadas} realizada${realizadas === 1 ? '' : 's'}` : '',
+    omitidas ? `${omitidas} omitida${omitidas === 1 ? '' : 's'}` : '',
+  ].filter(Boolean);
+  return parts.join(' · ');
+}
 
 export default function HistorialMedicamentoScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -22,6 +68,24 @@ export default function HistorialMedicamentoScreen() {
     () => [...(medicamento?.historialTomas ?? [])].sort((a, b) => b.fecha - a.fecha),
     [medicamento?.historialTomas]
   );
+  const secciones = useMemo<HistorialSection[]>(() => {
+    const byLocalDay = new Map<string, TomaHistorial[]>();
+    for (const toma of historial) {
+      const key = getLocalDateKey(toma.fecha);
+      const existing = byLocalDay.get(key);
+      if (existing) existing.push(toma);
+      else byLocalDay.set(key, [toma]);
+    }
+
+    return Array.from(byLocalDay.entries())
+      .sort(([dayA], [dayB]) => dayB.localeCompare(dayA))
+      .map(([key, data]) => ({
+        key,
+        title: getSectionTitle(key),
+        summary: getSectionSummary(data),
+        data,
+      }));
+  }, [historial]);
 
   if (isLoading) {
     return (
@@ -85,11 +149,12 @@ export default function HistorialMedicamentoScreen() {
           subtitle="Cuando registres una toma como realizada u omitida, aparecerá acá."
         />
       ) : (
-        <FlatList
-          data={historial}
+        <SectionList
+          sections={secciones}
           keyExtractor={(item, index) => `${item.fecha}-${item.estado}-${index}`}
           contentContainerStyle={styles.list}
           showsVerticalScrollIndicator={false}
+          stickySectionHeadersEnabled
           ListHeaderComponent={(
             <View style={[styles.summary, { backgroundColor: theme.colors.card, borderColor: theme.colors.border }]}>
               <Ionicons name="information-circle-outline" size={20} color={theme.colors.primary} />
@@ -98,24 +163,34 @@ export default function HistorialMedicamentoScreen() {
               </Text>
             </View>
           )}
+          renderSectionHeader={({ section }) => (
+            <View style={[styles.dayHeader, { backgroundColor: theme.colors.bg }]}>
+              <Text style={[styles.dayTitle, { color: theme.colors.text }]} accessibilityRole="header">
+                {section.title}
+              </Text>
+              <Text style={[styles.daySummary, { color: theme.colors.subtext }]}>
+                {section.summary}
+              </Text>
+            </View>
+          )}
           renderItem={({ item }) => {
             const taken = item.estado === 'tomado';
             const color = taken ? theme.colors.success : theme.colors.danger;
             const date = new Date(item.fecha);
+            const time = date.toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' });
             return (
-              <View style={[styles.entry, { backgroundColor: theme.colors.card, borderColor: theme.colors.border }]}>
+              <View
+                style={[styles.entry, { borderBottomColor: theme.colors.border }]}
+                accessible
+                accessibilityLabel={`${taken ? 'Realizada' : 'Omitida'}, ${time}`}
+              >
                 <View style={[styles.entryIcon, { backgroundColor: `${color}18` }]}>
                   <Ionicons name={taken ? 'checkmark-circle-outline' : 'close-circle-outline'} size={23} color={color} />
                 </View>
                 <View style={styles.entryContent}>
                   <Text style={[styles.entryTitle, { color }]}>{taken ? 'Realizada' : 'Omitida'}</Text>
-                  <Text style={[styles.entryDate, { color: theme.colors.text }]}>
-                    {date.toLocaleDateString('es-AR', { day: '2-digit', month: 'long', year: 'numeric' })}
-                  </Text>
-                  <Text style={[styles.entryTime, { color: theme.colors.subtext }]}>
-                    {date.toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' })}
-                  </Text>
                 </View>
+                <Text style={[styles.entryTime, { color: theme.colors.subtext }]}>{time}</Text>
               </View>
             );
           }}
@@ -132,13 +207,15 @@ const styles = StyleSheet.create({
   heading: { flex: 1 },
   title: { fontSize: 23, fontWeight: '800' },
   subtitle: { fontSize: 15, marginTop: 3 },
-  list: { paddingHorizontal: 20, paddingBottom: 32, gap: 10 },
+  list: { paddingHorizontal: 20, paddingBottom: 32 },
   summary: { flexDirection: 'row', alignItems: 'center', gap: 9, borderWidth: 1, borderRadius: 14, padding: 14, marginBottom: 4 },
   summaryText: { flex: 1, fontSize: 14, lineHeight: 20 },
-  entry: { flexDirection: 'row', alignItems: 'center', gap: 14, borderRadius: 16, borderWidth: 1, padding: 16, minHeight: 80 },
-  entryIcon: { width: 44, height: 44, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
+  dayHeader: { paddingTop: 18, paddingBottom: 8 },
+  dayTitle: { fontSize: 18, fontWeight: '800' },
+  daySummary: { fontSize: 13, marginTop: 3 },
+  entry: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 4, paddingVertical: 11, borderBottomWidth: StyleSheet.hairlineWidth, minHeight: 56 },
+  entryIcon: { width: 34, height: 34, borderRadius: 11, alignItems: 'center', justifyContent: 'center' },
   entryContent: { flex: 1 },
-  entryTitle: { fontSize: 16, fontWeight: '700' },
-  entryDate: { fontSize: 15, marginTop: 3 },
-  entryTime: { fontSize: 14, marginTop: 2 },
+  entryTitle: { fontSize: 15, fontWeight: '700' },
+  entryTime: { fontSize: 15, fontWeight: '600', fontVariant: ['tabular-nums'] },
 });

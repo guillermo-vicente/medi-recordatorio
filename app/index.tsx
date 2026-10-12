@@ -80,7 +80,7 @@ export default function LoginScreen() {
 
         <View style={[styles.formCard, { backgroundColor: theme.colors.card, borderColor: theme.colors.border }]}>
           <Text style={[styles.formTitle, { color: theme.colors.text }]}>
-            Iniciar Sesion
+            Iniciar sesión
           </Text>
 
           <View style={[styles.inputWrapper, { backgroundColor: theme.colors.bg, borderColor: theme.colors.border }]}>
@@ -92,7 +92,7 @@ export default function LoginScreen() {
             />
             <TextInput
               style={[styles.input, { color: theme.colors.text }]}
-              placeholder="Correo electronico"
+              placeholder="Correo electrónico"
               placeholderTextColor={theme.colors.subtext}
               value={email}
               onChangeText={setEmail}
@@ -116,7 +116,7 @@ export default function LoginScreen() {
             <TextInput
               ref={passwordInput}
               style={[styles.input, { color: theme.colors.text }]}
-              placeholder="Contrasena"
+              placeholder="Contraseña"
               placeholderTextColor={theme.colors.subtext}
               value={password}
               onChangeText={setPassword}
@@ -173,7 +173,7 @@ export default function LoginScreen() {
             accessibilityRole="button"
           >
             <Text style={[styles.registerText, { color: theme.colors.subtext }]}>
-              No tenes cuenta?{' '}
+              ¿No tenés cuenta?{' '}
               <Text style={{ color: theme.colors.primary, fontWeight: '700' }}>
                 Registrate
               </Text>

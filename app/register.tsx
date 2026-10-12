@@ -77,8 +77,18 @@ export default function RegisterScreen() {
                         <Ionicons name="arrow-back" size={24} color={theme.colors.text} />
                     </TouchableOpacity>
 
+                    <View style={styles.brandRow}>
+                        <View style={[styles.brandMark, { backgroundColor: theme.colors.primary }]}>
+                            <Ionicons name="medkit-outline" size={28} color={theme.colors.onPrimary} />
+                        </View>
+                        <View style={styles.brandText}>
+                            <Text style={[styles.brandName, { color: theme.colors.text }]}>MediRecordatorio</Text>
+                            <Text style={[styles.brandSubtitle, { color: theme.colors.subtext }]}>Tu recordatorio de medicamentos</Text>
+                        </View>
+                    </View>
+
                     <Text style={[styles.title, { color: theme.colors.text }]}>
-                        Crear Cuenta
+                        Crear cuenta
                     </Text>
                     <Text style={[styles.subtitle, { color: theme.colors.subtext }]}>
                         Registrate para empezar a usar la app
@@ -116,7 +126,7 @@ export default function RegisterScreen() {
                             <TextInput
                                 ref={emailInput}
                                 style={[styles.input, { color: theme.colors.text }]}
-                                placeholder="Correo electronico"
+                                placeholder="Correo electrónico"
                                 placeholderTextColor={theme.colors.subtext}
                                 value={email}
                                 onChangeText={setEmail}
@@ -140,7 +150,7 @@ export default function RegisterScreen() {
                             <TextInput
                                 ref={passwordInput}
                                 style={[styles.input, { color: theme.colors.text }]}
-                                placeholder="Contrasena (minimo 6 caracteres)"
+                                placeholder="Contraseña (mínimo 6 caracteres)"
                                 placeholderTextColor={theme.colors.subtext}
                                 value={password}
                                 onChangeText={setPassword}
@@ -174,7 +184,7 @@ export default function RegisterScreen() {
                             <TextInput
                                 ref={confirmPasswordInput}
                                 style={[styles.input, { color: theme.colors.text }]}
-                                placeholder="Confirmar contrasena"
+                                placeholder="Confirmar contraseña"
                                 placeholderTextColor={theme.colors.subtext}
                                 value={confirmPassword}
                                 onChangeText={setConfirmPassword}
@@ -223,9 +233,9 @@ export default function RegisterScreen() {
                             accessibilityRole="button"
                         >
                             <Text style={[styles.loginText, { color: theme.colors.subtext }]}>
-                                Ya tenes cuenta?{' '}
+                                ¿Ya tenés cuenta?{' '}
                                 <Text style={{ color: theme.colors.primary, fontWeight: '700' }}>
-                                    Inicia sesion
+                                    Iniciá sesión
                                 </Text>
                             </Text>
                         </TouchableOpacity>
@@ -241,6 +251,11 @@ const styles = StyleSheet.create({
     keyboardView: { flex: 1 },
     scroll: { flexGrow: 1, paddingHorizontal: 24, paddingVertical: 20 },
     backBtn: { minWidth: 44, minHeight: 44, marginBottom: 16, alignSelf: 'flex-start', justifyContent: 'center' },
+    brandRow: { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 20 },
+    brandMark: { width: 48, height: 48, borderRadius: 15, alignItems: 'center', justifyContent: 'center' },
+    brandText: { flex: 1 },
+    brandName: { fontSize: 18, fontWeight: '800' },
+    brandSubtitle: { fontSize: 13, marginTop: 3 },
     title: { fontSize: 28, fontWeight: '800', letterSpacing: -0.5 },
     subtitle: { fontSize: 15, marginTop: 4, marginBottom: 24 },
     formCard: { borderRadius: 22, padding: 22, borderWidth: 1 },

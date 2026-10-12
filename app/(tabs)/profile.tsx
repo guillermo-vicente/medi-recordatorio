@@ -9,6 +9,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
+import Constants from 'expo-constants';
 import { useAuth } from '../../src/features/auth/useAuth';
 import { useTheme } from '../../src/theme/useTheme';
 import { useAppTheme } from '../../src/theme/ThemeContext';
@@ -18,6 +19,7 @@ export default function ProfileScreen() {
   const { user, signOut } = useAuth();
   const theme = useTheme();
   const { isDark, toggleTheme } = useAppTheme();
+  const appVersion = Constants.expoConfig?.version ?? '0.1.0';
 
   const handleLogout = async () => {
     await signOut();
@@ -33,21 +35,24 @@ export default function ProfileScreen() {
         contentContainerStyle={styles.scroll}
         showsVerticalScrollIndicator={false}
       >
-        <Text style={[styles.headerTitle, { color: theme.colors.text }]}>
-          Perfil
-        </Text>
+        <View style={[styles.header, { backgroundColor: theme.colors.banner }]}>
+          <Text style={styles.headerEyebrow}>MEDIRECORDATORIO</Text>
+          <Text style={styles.headerTitle}>Mi perfil</Text>
+        </View>
 
+        <Text style={[styles.sectionLabel, { color: theme.colors.subtext }]}>CUENTA · SOLO LECTURA</Text>
         <View style={[styles.userCard, { backgroundColor: theme.colors.card, borderColor: theme.colors.border }]}>
           <View style={[styles.avatar, { backgroundColor: theme.colors.primary }]}>
-            <Ionicons name="person" size={36} color="#FFF" />
+            <Ionicons name="person" size={34} color={theme.colors.onPrimary} />
           </View>
           <View style={styles.userInfo}>
             <Text style={[styles.userName, { color: theme.colors.text }]}>
               {user?.name ?? 'Usuario'}
             </Text>
             <Text style={[styles.userEmail, { color: theme.colors.subtext }]}>
-              {user?.email}
+              {user?.email ?? 'Sin correo disponible'}
             </Text>
+            <Text style={[styles.readOnlyHint, { color: theme.colors.subtext }]}>Datos locales de esta cuenta</Text>
           </View>
         </View>
 
@@ -87,6 +92,29 @@ export default function ProfileScreen() {
           </View>
         </View>
 
+        <Text style={[styles.sectionLabel, { color: theme.colors.subtext }]}>ACERCA DE</Text>
+        <View style={[styles.groupCard, styles.aboutCard, { backgroundColor: theme.colors.card, borderColor: theme.colors.border }]}>
+          <View style={styles.settingRow}>
+            <View style={[styles.iconWrapper, { backgroundColor: theme.colors.primary + '1A' }]}>
+              <Ionicons name="medical-outline" size={20} color={theme.colors.primary} />
+            </View>
+            <View style={styles.settingTextContainer}>
+              <Text style={[styles.settingTitle, { color: theme.colors.text }]}>MediRecordatorio</Text>
+              <Text style={[styles.settingSubtitle, { color: theme.colors.subtext }]}>Versión {appVersion}</Text>
+            </View>
+          </View>
+          <View style={[styles.divider, { backgroundColor: theme.colors.border }]} />
+          <View style={styles.settingRow}>
+            <View style={[styles.iconWrapper, { backgroundColor: theme.colors.primary + '1A' }]}>
+              <Ionicons name="school-outline" size={20} color={theme.colors.primary} />
+            </View>
+            <View style={styles.settingTextContainer}>
+              <Text style={[styles.settingTitle, { color: theme.colors.text }]}>Desarrollada por</Text>
+              <Text style={[styles.settingSubtitle, { color: theme.colors.subtext }]}>Guillermo Vicente · Proyecto académico ISTEA</Text>
+            </View>
+          </View>
+        </View>
+
         <TouchableOpacity
           style={[
             styles.logoutBtn,
@@ -117,11 +145,15 @@ const styles = StyleSheet.create({
     paddingTop: 16,
     paddingBottom: 40,
   },
+  header: { paddingHorizontal: 20, paddingVertical: 18, borderRadius: 20, marginBottom: 24 },
+  headerEyebrow: { fontSize: 11, fontWeight: '700', letterSpacing: 1.1, color: 'rgba(255,255,255,0.76)' },
   headerTitle: {
-    fontSize: 28,
+    fontSize: 24,
     fontWeight: '800',
-    marginBottom: 24,
+    marginTop: 4,
+    color: '#FFFFFF',
   },
+  sectionLabel: { fontSize: 12, fontWeight: '700', letterSpacing: 1.1, marginBottom: 8, marginLeft: 4 },
   userCard: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -141,19 +173,15 @@ const styles = StyleSheet.create({
   userInfo: { flex: 1 },
   userName: { fontSize: 20, fontWeight: '800' },
   userEmail: { fontSize: 14, marginTop: 4 },
-  sectionLabel: {
-    fontSize: 12,
-    fontWeight: '700',
-    letterSpacing: 1.2,
-    marginBottom: 8,
-    marginLeft: 4,
-  },
+  readOnlyHint: { fontSize: 12, marginTop: 7 },
   groupCard: {
     borderRadius: 16,
     borderWidth: 1,
     marginBottom: 24,
     overflow: 'hidden',
   },
+  aboutCard: { marginBottom: 16 },
+  divider: { height: StyleSheet.hairlineWidth, marginLeft: 68 },
   settingRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -175,11 +203,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
-    paddingVertical: 14,
+    paddingVertical: 16,
     paddingHorizontal: 24,
     borderRadius: 12,
     borderWidth: 1,
     width: '100%',
+    marginTop: 20,
   },
   logoutText: { fontSize: 15, fontWeight: '700' },
 });

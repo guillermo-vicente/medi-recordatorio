@@ -306,17 +306,25 @@ export default function HomeScreen() {
 
             <View style={styles.peopleSelector}>
                 <View style={styles.peopleSelectorHeader}>
-                    <TouchableOpacity
-                        style={styles.activePersonButton}
-                        onPress={() => setSelectorPersonasVisible(true)}
-                        accessibilityRole="button"
-                        accessibilityLabel={`Medicamentos de ${personaActiva?.nombre ?? 'persona'}. Cambiar persona`}
-                    >
-                        <Text style={[styles.activePersonName, { color: theme.colors.text }]} numberOfLines={1}>
-                            Medicamentos de {personaActiva?.nombre ?? 'persona'}
-                        </Text>
-                        <Ionicons name="chevron-down" size={17} color={theme.colors.primary} />
-                    </TouchableOpacity>
+                    {personas.length > 1 ? (
+                        <TouchableOpacity
+                            style={styles.activePersonButton}
+                            onPress={() => setSelectorPersonasVisible(true)}
+                            accessibilityRole="button"
+                            accessibilityLabel={`Cambiar persona. Actualmente ${personaActiva?.nombre ?? 'persona'}`}
+                        >
+                            <Text style={[styles.activePersonName, { color: theme.colors.text }]} numberOfLines={1}>
+                                {personaActiva?.nombre ?? 'Mi ficha'}
+                            </Text>
+                            <Ionicons name="chevron-down" size={17} color={theme.colors.primary} />
+                        </TouchableOpacity>
+                    ) : (
+                        <View style={styles.activePersonButton}>
+                            <Text style={[styles.activePersonName, { color: theme.colors.text }]} numberOfLines={1}>
+                                {personaActiva?.nombre ?? 'Mi ficha'}
+                            </Text>
+                        </View>
+                    )}
                     <View style={styles.peopleActions}>
                         <TouchableOpacity
                             onPress={() => router.push('../personas')}
@@ -326,15 +334,6 @@ export default function HomeScreen() {
                         >
                             <Ionicons name="add" size={19} color={theme.colors.onPrimary} />
                             <Text style={[styles.addPersonText, { color: theme.colors.onPrimary }]}>Agregar</Text>
-                        </TouchableOpacity>
-                        <TouchableOpacity
-                            onPress={() => router.push('../personas')}
-                            style={[styles.managePeopleButton, { backgroundColor: theme.colors.card, borderColor: theme.colors.border }]}
-                            accessibilityRole="button"
-                            accessibilityLabel="Administrar fichas de personas"
-                        >
-                            <Ionicons name="people-outline" size={19} color={theme.colors.primary} />
-                            <Text style={[styles.managePeopleText, { color: theme.colors.primary }]}>Fichas</Text>
                         </TouchableOpacity>
                     </View>
                 </View>
@@ -475,11 +474,9 @@ const styles = StyleSheet.create({
     peopleSelectorHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8 },
     activePersonButton: { flex: 1, minHeight: 46, flexDirection: 'row', alignItems: 'center', gap: 4 },
     activePersonName: { flexShrink: 1, fontSize: 15, fontWeight: '700' },
-    peopleActions: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+    peopleActions: { flexDirection: 'row', alignItems: 'center' },
     addPersonButton: { minHeight: 42, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 2, paddingHorizontal: 10, borderRadius: 13 },
     addPersonText: { fontSize: 13, fontWeight: '700' },
-    managePeopleButton: { minHeight: 42, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 5, paddingHorizontal: 10, borderRadius: 13, borderWidth: 1 },
-    managePeopleText: { fontSize: 13, fontWeight: '700' },
     listContent: {
         paddingHorizontal: 20,
         paddingBottom: 100,

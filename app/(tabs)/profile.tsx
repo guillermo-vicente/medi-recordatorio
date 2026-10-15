@@ -13,6 +13,7 @@ import Constants from 'expo-constants';
 import { useAuth } from '../../src/features/auth/useAuth';
 import { useTheme } from '../../src/theme/useTheme';
 import { useAppTheme } from '../../src/theme/ThemeContext';
+import { ScreenHeader } from '../../src/components/ui/ScreenHeader';
 
 export default function ProfileScreen() {
   const router = useRouter();
@@ -35,10 +36,7 @@ export default function ProfileScreen() {
         contentContainerStyle={styles.scroll}
         showsVerticalScrollIndicator={false}
       >
-        <View style={[styles.header, { backgroundColor: theme.colors.banner }]}>
-          <Text style={styles.headerEyebrow}>MEDIRECORDATORIO</Text>
-          <Text style={styles.headerTitle}>Mi perfil</Text>
-        </View>
+        <ScreenHeader title="Mi perfil" style={styles.headerFrame} />
 
         <Text style={[styles.sectionLabel, { color: theme.colors.subtext }]}>CUENTA · SOLO LECTURA</Text>
         <View style={[styles.userCard, { backgroundColor: theme.colors.card, borderColor: theme.colors.border }]}>
@@ -145,14 +143,7 @@ const styles = StyleSheet.create({
     paddingTop: 16,
     paddingBottom: 72,
   },
-  header: { paddingHorizontal: 20, paddingVertical: 18, borderRadius: 20, marginBottom: 24 },
-  headerEyebrow: { fontSize: 11, fontWeight: '700', letterSpacing: 1.1, color: 'rgba(255,255,255,0.76)' },
-  headerTitle: {
-    fontSize: 24,
-    fontWeight: '800',
-    marginTop: 4,
-    color: '#FFFFFF',
-  },
+  headerFrame: { marginBottom: 24 },
   sectionLabel: { fontSize: 12, fontWeight: '700', letterSpacing: 1.1, marginBottom: 8, marginLeft: 4 },
   userCard: {
     flexDirection: 'row',

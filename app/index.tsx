@@ -79,7 +79,7 @@ export default function LoginScreen() {
         </View>
 
         <View style={[styles.formCard, { backgroundColor: theme.colors.card, borderColor: theme.colors.border }]}>
-          <Text style={[styles.formTitle, { color: theme.colors.text }]}>
+          <Text style={[styles.formTitle, { color: theme.colors.text }]} accessibilityRole="header">
             Iniciar sesión
           </Text>
 
@@ -191,7 +191,7 @@ const styles = StyleSheet.create({
   keyboardView: {
     flex: 1,
   },
-  scrollContent: { flexGrow: 1, justifyContent: 'center', paddingHorizontal: 24, paddingVertical: 24 },
+  scrollContent: { flexGrow: 1, justifyContent: 'center', paddingHorizontal: 20, paddingVertical: 24 },
   header: { alignItems: 'center', marginBottom: 26 },
   logoContainer: {
     width: 76,

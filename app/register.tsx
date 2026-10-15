@@ -87,7 +87,7 @@ export default function RegisterScreen() {
                         </View>
                     </View>
 
-                    <Text style={[styles.title, { color: theme.colors.text }]}>
+                    <Text style={[styles.title, { color: theme.colors.text }]} accessibilityRole="header">
                         Crear cuenta
                     </Text>
                     <Text style={[styles.subtitle, { color: theme.colors.subtext }]}>
@@ -249,7 +249,7 @@ export default function RegisterScreen() {
 const styles = StyleSheet.create({
     container: { flex: 1 },
     keyboardView: { flex: 1 },
-    scroll: { flexGrow: 1, paddingHorizontal: 24, paddingVertical: 20 },
+    scroll: { flexGrow: 1, paddingHorizontal: 20, paddingVertical: 20 },
     backBtn: { minWidth: 44, minHeight: 44, marginBottom: 16, alignSelf: 'flex-start', justifyContent: 'center' },
     brandRow: { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 20 },
     brandMark: { width: 48, height: 48, borderRadius: 15, alignItems: 'center', justifyContent: 'center' },

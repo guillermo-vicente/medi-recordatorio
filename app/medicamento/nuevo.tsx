@@ -209,7 +209,7 @@ export default function NuevoMedicamentoScreen() {
             <Ionicons name="arrow-back" size={24} color={theme.colors.text} />
           </TouchableOpacity>
 
-          <Text style={[styles.title, { color: theme.colors.text }]}>
+          <Text style={[styles.title, { color: theme.colors.text }]} accessibilityRole="header">
             {editing ? 'Editar medicamento' : 'Nuevo medicamento'}
           </Text>
           <Text style={[styles.subtitle, { color: theme.colors.subtext }]}>
@@ -483,7 +483,7 @@ export default function NuevoMedicamentoScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1 },
   keyboard: { flex: 1 },
-  scroll: { paddingHorizontal: 24, paddingVertical: 20 },
+  scroll: { paddingHorizontal: 20, paddingVertical: 20 },
   backBtn: { minWidth: 44, minHeight: 44, marginBottom: 16, alignSelf: 'flex-start', justifyContent: 'center' },
   title: { fontSize: 28, fontWeight: '800' },
   subtitle: { fontSize: 15, marginTop: 4, marginBottom: 24 },

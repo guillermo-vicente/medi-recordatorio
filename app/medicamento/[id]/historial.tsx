@@ -123,7 +123,7 @@ export default function HistorialMedicamentoScreen() {
           <Ionicons name="arrow-back" size={22} color={theme.colors.text} />
         </TouchableOpacity>
         <View style={styles.heading}>
-          <Text style={[styles.title, { color: theme.colors.text }]}>Historial de tomas</Text>
+          <Text style={[styles.title, { color: theme.colors.text }]} accessibilityRole="header">Historial de tomas</Text>
           <Text style={[styles.subtitle, { color: theme.colors.subtext }]} numberOfLines={1}>
             {medicamento ? `${persona?.nombre ?? 'Persona'} · ${medicamento.nombre}` : 'Medicamento'}
           </Text>

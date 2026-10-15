@@ -64,7 +64,7 @@ export default function PersonasScreen() {
           <Ionicons name="arrow-back" size={22} color={theme.colors.text} />
         </TouchableOpacity>
 
-        <Text style={[styles.title, { color: theme.colors.text }]}>Personas</Text>
+        <Text style={[styles.title, { color: theme.colors.text }]} accessibilityRole="header">Personas</Text>
         <Text style={[styles.subtitle, { color: theme.colors.subtext }]}>
           Administrá una ficha propia y las personas a quienes acompañás. Cada ficha mantiene sus medicamentos separados.
         </Text>

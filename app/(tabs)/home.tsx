@@ -22,6 +22,7 @@ import { ESTADOS_TOMA } from '../../src/config/constants';
 import { LoadingState } from '../../src/components/ui/LoadingState';
 import { ErrorState } from '../../src/components/ui/ErrorState';
 import { EmptyState } from '../../src/components/ui/EmptyState';
+import { ScreenHeader } from '../../src/components/ui/ScreenHeader';
 import { useRouter, useFocusEffect } from 'expo-router';
 import { showConfirm } from '../../src/utils/dialogs';
 import { usePersonas } from '../../src/features/personas/usePersonas';
@@ -285,9 +286,12 @@ export default function HomeScreen() {
                         title="Sin medicamentos"
                         subtitle={
                             personaActiva
-                                ? `No hay medicamentos cargados para ${personaActiva.nombre}. Tocá el botón + para agregar el primero.`
-                                : 'Tocá el botón + para agregar un medicamento.'
+                                ? `No hay medicamentos cargados para ${personaActiva.nombre}. Podés agregar el primero cuando quieras.`
+                                : 'Podés agregar un medicamento cuando quieras.'
                         }
+                        actionLabel="Agregar medicamento"
+                        onAction={handleAdd}
+                        actionTextColor={theme.colors.onPrimary}
                     />
                 }
                 showsVerticalScrollIndicator={false}
@@ -300,9 +304,7 @@ export default function HomeScreen() {
             style={[styles.container, { backgroundColor: theme.colors.bg }]}
             edges={['top']}
         >
-            <View style={[styles.header, { backgroundColor: theme.colors.banner }]}>
-                <Text style={styles.title}>Hola, {user?.name ?? 'Usuario'}</Text>
-            </View>
+            <ScreenHeader title={`Hola, ${user?.name ?? 'Usuario'}`} style={styles.headerFrame} />
 
             <View style={styles.peopleSelector}>
                 <View style={styles.peopleSelectorHeader}>
@@ -461,15 +463,11 @@ export default function HomeScreen() {
 
 const styles = StyleSheet.create({
     container: { flex: 1 },
-    header: {
+    headerFrame: {
         marginHorizontal: 20,
         marginTop: 12,
         marginBottom: 14,
-        paddingHorizontal: 20,
-        paddingVertical: 16,
-        borderRadius: 20,
     },
-    title: { fontSize: 22, fontWeight: '800', color: '#FFFFFF' },
     peopleSelector: { paddingHorizontal: 20, marginBottom: 12 },
     peopleSelectorHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8 },
     activePersonButton: { flex: 1, minHeight: 46, flexDirection: 'row', alignItems: 'center', gap: 4 },

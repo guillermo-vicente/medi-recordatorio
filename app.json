@@ -6,10 +6,19 @@
     "orientation": "portrait",
     "userInterfaceStyle": "light",
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "infoPlist": {
+        "NSCameraUsageDescription": "Esta app usa la cámara para sacar fotos de los medicamentos o recetas.",
+        "NSPhotoLibraryUsageDescription": "Esta app accede a tu galería para adjuntar fotos de medicamentos o recetas.",
+        "NSPhotoLibraryAddUsageDescription": "Esta app guarda fotos en tu galería."
+      }
     },
     "android": {
-      "softwareKeyboardLayoutMode": "resize"
+      "softwareKeyboardLayoutMode": "resize",
+      "permissions": [
+        "android.permission.CAMERA",
+        "android.permission.READ_MEDIA_IMAGES"
+      ]
     },
     "web": {},
     "scheme": "medirecordatorio",
@@ -17,7 +26,19 @@
       "expo-router",
       "expo-notifications",
       "expo-secure-store",
-      "expo-font"
+      "expo-font",
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Esta app usa la cámara para sacar fotos de los medicamentos o recetas."
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Esta app accede a tu galería para adjuntar fotos de medicamentos o recetas."
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true

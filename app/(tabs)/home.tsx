@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import type { ComponentProps } from 'react';
 import {
     FlatList,
+    Image,
     Modal,
     Pressable,
     RefreshControl,
@@ -67,6 +68,8 @@ export default function HomeScreen() {
     const { personas, reload: reloadPersonas } = usePersonas();
     const [personaActivaId, setPersonaActivaId] = useState<string | null>(null);
     const [accionesMedicamento, setAccionesMedicamento] = useState<Medicamento | null>(null);
+    const [fotoAmpliada, setFotoAmpliada] = useState<Medicamento | null>(null);
+    const [selectorPersonasVisible, setSelectorPersonasVisible] = useState(false);
 
     useEffect(() => {
         if (!personas.length) return;
@@ -148,9 +151,24 @@ export default function HomeScreen() {
                         { backgroundColor: theme.colors.card, borderLeftColor: statusColor, borderColor: theme.colors.border },
                     ]}
                 >
-                    <View style={[styles.cardIcon, { backgroundColor: statusColor + '18' }]}>
-                        <Ionicons name="medical-outline" size={23} color={statusColor} />
-                    </View>
+                    {item.fotoUri ? (
+                        <TouchableOpacity
+                            onPress={() => setFotoAmpliada(item)}
+                            accessibilityRole="button"
+                            accessibilityLabel={`Ampliar foto de ${item.nombre}`}
+                        >
+                            <Image
+                                source={{ uri: item.fotoUri }}
+                                style={[styles.cardThumbnail, { borderColor: theme.colors.border }]}
+                                resizeMode="cover"
+                                accessible={false}
+                            />
+                        </TouchableOpacity>
+                    ) : (
+                        <View style={[styles.cardIcon, { backgroundColor: statusColor + '18' }]}>
+                            <Ionicons name="medical-outline" size={23} color={statusColor} />
+                        </View>
+                    )}
                     <View style={styles.cardContent}>
                         <View style={styles.cardHeader}>
                             <Text
@@ -283,50 +301,43 @@ export default function HomeScreen() {
             edges={['top']}
         >
             <View style={[styles.header, { backgroundColor: theme.colors.banner }]}>
-                <Text style={styles.title}>Hola, {user?.name ?? 'Usuario'} 👋</Text>
+                <Text style={styles.title}>Hola, {user?.name ?? 'Usuario'}</Text>
             </View>
 
             <View style={styles.peopleSelector}>
                 <View style={styles.peopleSelectorHeader}>
-                    <Text style={[styles.peopleSelectorLabel, { color: theme.colors.text }]}>
-                        Medicamentos de
-                    </Text>
                     <TouchableOpacity
-                        onPress={() => router.push('../personas')}
-                        style={[styles.managePeopleButton, { backgroundColor: theme.colors.card, borderColor: theme.colors.border }]}
+                        style={styles.activePersonButton}
+                        onPress={() => setSelectorPersonasVisible(true)}
                         accessibilityRole="button"
-                        accessibilityLabel="Administrar personas"
+                        accessibilityLabel={`Medicamentos de ${personaActiva?.nombre ?? 'persona'}. Cambiar persona`}
                     >
-                        <Ionicons name="people-outline" size={19} color={theme.colors.primary} />
-                        <Text style={[styles.managePeopleText, { color: theme.colors.primary }]}>Fichas</Text>
+                        <Text style={[styles.activePersonName, { color: theme.colors.text }]} numberOfLines={1}>
+                            Medicamentos de {personaActiva?.nombre ?? 'persona'}
+                        </Text>
+                        <Ionicons name="chevron-down" size={17} color={theme.colors.primary} />
                     </TouchableOpacity>
+                    <View style={styles.peopleActions}>
+                        <TouchableOpacity
+                            onPress={() => router.push('../personas')}
+                            style={[styles.addPersonButton, { backgroundColor: theme.colors.primary }]}
+                            accessibilityRole="button"
+                            accessibilityLabel="Agregar persona"
+                        >
+                            <Ionicons name="add" size={19} color={theme.colors.onPrimary} />
+                            <Text style={[styles.addPersonText, { color: theme.colors.onPrimary }]}>Agregar</Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity
+                            onPress={() => router.push('../personas')}
+                            style={[styles.managePeopleButton, { backgroundColor: theme.colors.card, borderColor: theme.colors.border }]}
+                            accessibilityRole="button"
+                            accessibilityLabel="Administrar fichas de personas"
+                        >
+                            <Ionicons name="people-outline" size={19} color={theme.colors.primary} />
+                            <Text style={[styles.managePeopleText, { color: theme.colors.primary }]}>Fichas</Text>
+                        </TouchableOpacity>
+                    </View>
                 </View>
-                <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.peopleRow}>
-                    {personas.map((persona) => {
-                        const selected = persona.id === personaActivaId;
-                        return (
-                            <TouchableOpacity
-                                key={persona.id}
-                                style={[styles.personChip, { borderColor: selected ? theme.colors.primary : theme.colors.border, backgroundColor: selected ? theme.colors.primary : theme.colors.card }]}
-                                onPress={() => setPersonaActivaId(persona.id)}
-                                accessibilityRole="radio"
-                                accessibilityLabel={`Ver medicamentos de ${persona.nombre}`}
-                                accessibilityState={{ checked: selected }}
-                            >
-                                <Text style={[styles.personChipText, { color: selected ? theme.colors.onPrimary : theme.colors.text }]}>{persona.nombre}</Text>
-                            </TouchableOpacity>
-                        );
-                    })}
-                    <TouchableOpacity
-                        style={[styles.personChip, { borderColor: theme.colors.border, backgroundColor: theme.colors.card }]}
-                        onPress={() => router.push('../personas')}
-                        accessibilityRole="button"
-                        accessibilityLabel="Agregar persona"
-                    >
-                        <Ionicons name="add" size={17} color={theme.colors.primary} />
-                        <Text style={[styles.personChipText, { color: theme.colors.primary }]}>Agregar</Text>
-                    </TouchableOpacity>
-                </ScrollView>
             </View>
 
             {renderContent()}
@@ -340,6 +351,85 @@ export default function HomeScreen() {
             >
                 <Ionicons name="add" size={28} color={theme.colors.onPrimary} />
             </TouchableOpacity>
+
+            <Modal
+                visible={Boolean(fotoAmpliada)}
+                transparent
+                animationType="fade"
+                onRequestClose={() => setFotoAmpliada(null)}
+            >
+                <Pressable style={[styles.photoViewerBackdrop, { backgroundColor: theme.colors.overlay }]} onPress={() => setFotoAmpliada(null)}>
+                    <Pressable style={[styles.photoViewer, { backgroundColor: theme.colors.card }]} onPress={(event) => event.stopPropagation()}>
+                        <View style={styles.photoViewerHeader}>
+                            <Text style={[styles.photoViewerTitle, { color: theme.colors.text }]} numberOfLines={1}>{fotoAmpliada?.nombre}</Text>
+                            <TouchableOpacity
+                                style={styles.photoViewerClose}
+                                onPress={() => setFotoAmpliada(null)}
+                                accessibilityRole="button"
+                                accessibilityLabel="Cerrar foto"
+                            >
+                                <Ionicons name="close" size={22} color={theme.colors.text} />
+                            </TouchableOpacity>
+                        </View>
+                        {fotoAmpliada?.fotoUri ? (
+                            <Image
+                                source={{ uri: fotoAmpliada.fotoUri }}
+                                style={styles.photoViewerImage}
+                                resizeMode="contain"
+                                accessible
+                                accessibilityLabel={`Foto de referencia de ${fotoAmpliada.nombre}`}
+                            />
+                        ) : null}
+                        <TouchableOpacity
+                            style={[styles.photoViewerEdit, { backgroundColor: theme.colors.primary }]}
+                            onPress={() => {
+                                const item = fotoAmpliada;
+                                setFotoAmpliada(null);
+                                if (item) router.push({ pathname: '/medicamento/nuevo', params: { id: item.id } });
+                            }}
+                            accessibilityRole="button"
+                            accessibilityLabel="Editar medicamento y cambiar foto"
+                        >
+                            <Ionicons name="create-outline" size={19} color={theme.colors.onPrimary} />
+                            <Text style={[styles.photoViewerEditText, { color: theme.colors.onPrimary }]}>Editar medicamento</Text>
+                        </TouchableOpacity>
+                    </Pressable>
+                </Pressable>
+            </Modal>
+
+            <Modal
+                visible={selectorPersonasVisible}
+                transparent
+                animationType="slide"
+                onRequestClose={() => setSelectorPersonasVisible(false)}
+            >
+                <Pressable style={[styles.sheetBackdrop, { backgroundColor: theme.colors.overlay }]} onPress={() => setSelectorPersonasVisible(false)}>
+                    <Pressable style={[styles.actionSheet, { backgroundColor: theme.colors.card }]} onPress={(event) => event.stopPropagation()}>
+                        <View style={[styles.sheetHandle, { backgroundColor: theme.colors.border }]} />
+                        <Text style={[styles.sheetTitle, { color: theme.colors.text }]}>Elegir persona</Text>
+                        <Text style={[styles.sheetSubtitle, { color: theme.colors.subtext }]}>Mostrando medicamentos de</Text>
+                        <ScrollView style={styles.personOptionsList} contentContainerStyle={styles.personOptionsContent} showsVerticalScrollIndicator={false}>
+                            {personas.map((persona) => {
+                                const selected = persona.id === personaActivaId;
+                                return (
+                                    <TouchableOpacity
+                                        key={persona.id}
+                                        style={[styles.personOption, { borderColor: selected ? theme.colors.primary : theme.colors.border, backgroundColor: selected ? `${theme.colors.primary}14` : theme.colors.card }]}
+                                        onPress={() => { setPersonaActivaId(persona.id); setSelectorPersonasVisible(false); }}
+                                        accessibilityRole="radio"
+                                        accessibilityLabel={persona.nombre}
+                                        accessibilityState={{ checked: selected }}
+                                    >
+                                        <Ionicons name={selected ? 'radio-button-on' : 'radio-button-off'} size={21} color={selected ? theme.colors.primary : theme.colors.subtext} />
+                                        <Text style={[styles.personOptionText, { color: theme.colors.text }]}>{persona.nombre}</Text>
+                                        {persona.esPropia ? <Text style={[styles.personOptionMeta, { color: theme.colors.subtext }]}>Mi ficha</Text> : null}
+                                    </TouchableOpacity>
+                                );
+                            })}
+                        </ScrollView>
+                    </Pressable>
+                </Pressable>
+            </Modal>
 
             <Modal
                 visible={Boolean(accionesMedicamento)}
@@ -381,14 +471,15 @@ const styles = StyleSheet.create({
         borderRadius: 20,
     },
     title: { fontSize: 22, fontWeight: '800', color: '#FFFFFF' },
-    peopleSelector: { paddingHorizontal: 20, marginBottom: 8 },
-    peopleSelectorHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 },
-    peopleSelectorLabel: { fontSize: 15, fontWeight: '700' },
-    managePeopleButton: { minHeight: 40, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingHorizontal: 12, borderRadius: 13, borderWidth: 1 },
-    managePeopleText: { fontSize: 14, fontWeight: '700' },
-    peopleRow: { gap: 8, paddingBottom: 2 },
-    personChip: { minHeight: 44, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 5, paddingHorizontal: 14, borderWidth: 1, borderRadius: 13 },
-    personChipText: { fontSize: 15, fontWeight: '600' },
+    peopleSelector: { paddingHorizontal: 20, marginBottom: 12 },
+    peopleSelectorHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8 },
+    activePersonButton: { flex: 1, minHeight: 46, flexDirection: 'row', alignItems: 'center', gap: 4 },
+    activePersonName: { flexShrink: 1, fontSize: 15, fontWeight: '700' },
+    peopleActions: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+    addPersonButton: { minHeight: 42, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 2, paddingHorizontal: 10, borderRadius: 13 },
+    addPersonText: { fontSize: 13, fontWeight: '700' },
+    managePeopleButton: { minHeight: 42, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 5, paddingHorizontal: 10, borderRadius: 13, borderWidth: 1 },
+    managePeopleText: { fontSize: 13, fontWeight: '700' },
     listContent: {
         paddingHorizontal: 20,
         paddingBottom: 100,
@@ -416,6 +507,14 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         justifyContent: 'center',
         marginRight: 16,
+    },
+    cardThumbnail: {
+        width: 56,
+        height: 56,
+        borderRadius: 13,
+        borderWidth: 1,
+        marginRight: 14,
+        backgroundColor: '#E8F0EF',
     },
     cardContent: { flex: 1 },
     cardHeader: {
@@ -463,6 +562,19 @@ const styles = StyleSheet.create({
     sheetActionText: { fontSize: 16, fontWeight: '600' },
     sheetCancel: { minHeight: 48, borderWidth: 1, borderRadius: 13, alignItems: 'center', justifyContent: 'center', marginTop: 8 },
     sheetCancelText: { fontSize: 15, fontWeight: '700' },
+    photoViewerBackdrop: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 20 },
+    photoViewer: { width: '100%', maxWidth: 440, padding: 16, borderRadius: 22, gap: 14 },
+    photoViewerHeader: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+    photoViewerTitle: { flex: 1, fontSize: 18, fontWeight: '700' },
+    photoViewerClose: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center', borderRadius: 14 },
+    photoViewerImage: { width: '100%', height: 320, borderRadius: 16, backgroundColor: '#101818' },
+    photoViewerEdit: { minHeight: 48, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, borderRadius: 13 },
+    photoViewerEditText: { fontSize: 15, fontWeight: '700' },
+    personOption: { minHeight: 52, flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 12, borderRadius: 13, borderWidth: 1 },
+    personOptionsList: { maxHeight: 360 },
+    personOptionsContent: { gap: 8, paddingBottom: 4 },
+    personOptionText: { flex: 1, fontSize: 16, fontWeight: '600' },
+    personOptionMeta: { fontSize: 12 },
 });
 
 function SheetAction({ icon, label, color, onPress }: { icon: ComponentProps<typeof Ionicons>['name']; label: string; color: string; onPress: () => void }) {

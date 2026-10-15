@@ -23,6 +23,8 @@ import { usePersonas } from '../../src/features/personas/usePersonas';
 import { FRECUENCIAS } from '../../src/config/constants';
 import { notificationService } from '../../src/features/notifications/notificationService';
 import { showAlert } from '../../src/utils/dialogs';
+import { ImagePickerField } from '../../src/components/ui/ImagePickerField';
+import { mediaService } from '../../src/services/mediaService';
 
 function parseHorariosDiarios(input: string): { horarios: string[]; error?: string } {
   const maxHorarios = 12;
@@ -65,28 +67,37 @@ export default function NuevoMedicamentoScreen() {
   const [submitting, setSubmitting] = useState(false);
   const editing = Boolean(id);
   const initialLoadDone = useRef<string | null>(null);
+  const fotoOriginal = useRef<string | undefined>(undefined);
+  const fotosPendientes = useRef(new Set<string>());
+  const [fotoUri, setFotoUri] = useState<string | undefined>();
+
+  useEffect(() => () => {
+    fotosPendientes.current.forEach((uri) => { void mediaService.deleteImage(uri); });
+  }, []);
 
   useFocusEffect(useCallback(() => { void reloadPersonas(); }, [reloadPersonas]));
 
   useEffect(() => {
-  // Cargar los datos del medicamento solo una vez por id.
-  // Sin esto, cada vez que "medicamentos" cambia el efecto vuelve a correr y sobreescribe
-  if (initialLoadDone.current === id) return;
-  const item = medicamentos.find((med) => med.id === id);
-  if (!item) return;
-  initialLoadDone.current = id ?? null;
-  setNombre(item.nombre);
-  setDosis(item.dosis);
-  setMomentoComida(item.momentoComida);
-  const savedObservaciones = item.observaciones ?? item.indicaciones ?? '';
-  setObservaciones(savedObservaciones);
-  setMostrarDetalles(Boolean(item.momentoComida || savedObservaciones));
-  setPersonaId(item.personaId ?? getOwnPersonaId(user?.email ?? ''));
-  setTipoHorario(item.tipoHorario ?? 'intervalo');
-  setHorariosTexto(item.horariosDiarios?.join(', ') ?? '');
-  const idx = FRECUENCIAS.findIndex((frecuencia) => frecuencia.horas === item.frecuenciaHoras);
-  if (idx >= 0) setFrecuenciaIdx(idx);
-}, [id, medicamentos, user?.email]);
+    // Cargar los datos del medicamento solo una vez por id.
+    // Sin esto, cada vez que "medicamentos" cambia el efecto vuelve a correr y sobreescribe
+    if (initialLoadDone.current === id) return;
+    const item = medicamentos.find((med) => med.id === id);
+    if (!item) return;
+    initialLoadDone.current = id ?? null;
+    setNombre(item.nombre);
+    setDosis(item.dosis);
+    setMomentoComida(item.momentoComida);
+    const savedObservaciones = item.observaciones ?? item.indicaciones ?? '';
+    setObservaciones(savedObservaciones);
+    setMostrarDetalles(Boolean(item.momentoComida || savedObservaciones));
+    setPersonaId(item.personaId ?? getOwnPersonaId(user?.email ?? ''));
+    setTipoHorario(item.tipoHorario ?? 'intervalo');
+    setHorariosTexto(item.horariosDiarios?.join(', ') ?? '');
+    setFotoUri(item.fotoUri);
+    fotoOriginal.current = item.fotoUri;
+    const idx = FRECUENCIAS.findIndex((frecuencia) => frecuencia.horas === item.frecuenciaHoras);
+    if (idx >= 0) setFrecuenciaIdx(idx);
+  }, [id, medicamentos, user?.email]);
 
   useEffect(() => {
     if (!editing) setPersonaId(personaIdParam ?? (user?.email ? getOwnPersonaId(user.email) : ''));
@@ -135,6 +146,7 @@ export default function NuevoMedicamentoScreen() {
         indicaciones: undefined,
         notificationIds: [] as string[],
         notificationId: undefined,
+        fotoUri
       };
       let itemId = id;
       const existing = editing ? medicamentos.find((med) => med.id === id) : undefined;
@@ -143,6 +155,13 @@ export default function NuevoMedicamentoScreen() {
       } else {
         const created = await add(data);
         itemId = created.id;
+      }
+      fotosPendientes.current.forEach((uri) => {
+        if (uri !== fotoUri) void mediaService.deleteImage(uri);
+      });
+      fotosPendientes.current.clear();
+      if (fotoOriginal.current && fotoOriginal.current !== fotoUri) {
+        await mediaService.deleteImage(fotoOriginal.current);
       }
       await notificationService.cancelMany([...(existing?.notificationIds ?? []), existing?.notificationId]);
       const allowed = await notificationService.requestPermissions();
@@ -331,6 +350,28 @@ export default function NuevoMedicamentoScreen() {
               </>
             )}
 
+            <View style={[styles.photoSection, { borderColor: theme.colors.border, backgroundColor: theme.colors.card }]}>
+              <View style={styles.photoSectionHeading}>
+                <View style={[styles.photoSectionIcon, { backgroundColor: `${theme.colors.primary}15` }]}>
+                  <Ionicons name="image-outline" size={20} color={theme.colors.primary} />
+                </View>
+                <View style={styles.photoSectionCopy}>
+                  <Text style={[styles.optionalTitle, { color: theme.colors.text }]}>Foto de referencia</Text>
+                  <Text style={[styles.helperText, { color: theme.colors.subtext }]}>Opcional · caja, envase o receta</Text>
+                </View>
+              </View>
+              <ImagePickerField
+                value={fotoUri}
+                onChange={(uri) => {
+                  setFotoUri(uri);
+                  if (uri && uri !== fotoOriginal.current) fotosPendientes.current.add(uri);
+                }}
+                label=""
+                aspect={[4, 3]}
+                disabled={submitting}
+              />
+            </View>
+
             <View style={[styles.optionalSection, { borderColor: theme.colors.border }]}>
               <TouchableOpacity
                 style={styles.optionalHeader}
@@ -486,6 +527,10 @@ const styles = StyleSheet.create({
   testToggleText: { flex: 1, gap: 4 },
   testToggleTitle: { fontSize: 15, fontWeight: '700' },
   optionalSection: { borderWidth: 1, borderRadius: 14, marginTop: 8, overflow: 'hidden' },
+  photoSection: { borderWidth: 1, borderRadius: 18, padding: 16, marginTop: 8 },
+  photoSectionHeading: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  photoSectionIcon: { width: 40, height: 40, borderRadius: 13, alignItems: 'center', justifyContent: 'center' },
+  photoSectionCopy: { flex: 1, gap: 3 },
   optionalHeader: { minHeight: 62, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12, paddingHorizontal: 14, paddingVertical: 8 },
   optionalHeadingText: { flex: 1, gap: 4 },
   optionalTitle: { fontSize: 15, fontWeight: '700' },

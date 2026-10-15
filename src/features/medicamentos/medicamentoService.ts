@@ -6,6 +6,7 @@ import { calcularProximaToma } from './calcularTomas';
 export { calcularProximaToma, calcularProximaTomaDiaria } from './calcularTomas';
 import { storage } from '../../services/storage';
 import { STORAGE_KEYS, ESTADOS_TOMA } from '../../config/constants';
+import { mediaService } from '../../services/mediaService';
 
 export interface Medicamento {
   id: string;
@@ -28,6 +29,7 @@ export interface Medicamento {
   horariosDiarios?: string[];
   inicioHorario?: number;
   notificationIds?: string[];
+  fotoUri?: string;
 }
 
 export const medicamentoService = {
@@ -75,6 +77,7 @@ export const medicamentoService = {
       momentoComida: data.momentoComida,
       observaciones: data.observaciones,
       indicaciones: data.indicaciones,
+      fotoUri: data.fotoUri,
       estado: ESTADOS_TOMA.pendiente.key,
       createdAt: Date.now(),
       userEmail,
@@ -100,6 +103,10 @@ export const medicamentoService = {
       STORAGE_KEYS.MEDICAMENTOS,
       []
     );
+    const item = todos.find((m) => m.id === id && m.userEmail === userEmail);
+    if (item?.fotoUri) {
+      await mediaService.deleteImage(item.fotoUri);
+    }
     await storage.set(
       STORAGE_KEYS.MEDICAMENTOS,
       todos.filter((m) => m.id !== id || m.userEmail !== userEmail)

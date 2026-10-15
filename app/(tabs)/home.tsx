@@ -314,14 +314,14 @@ export default function HomeScreen() {
                             accessibilityLabel={`Cambiar persona. Actualmente ${personaActiva?.nombre ?? 'persona'}`}
                         >
                             <Text style={[styles.activePersonName, { color: theme.colors.text }]} numberOfLines={1}>
-                                {personaActiva?.nombre ?? 'Mi ficha'}
+                                {personaActiva?.nombre ?? 'Medicamentos:'}
                             </Text>
                             <Ionicons name="chevron-down" size={17} color={theme.colors.primary} />
                         </TouchableOpacity>
                     ) : (
                         <View style={styles.activePersonButton}>
                             <Text style={[styles.activePersonName, { color: theme.colors.text }]} numberOfLines={1}>
-                                {personaActiva?.nombre ?? 'Mi ficha'}
+                                Medicamentos:
                             </Text>
                         </View>
                     )}

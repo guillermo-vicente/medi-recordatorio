@@ -84,7 +84,7 @@ export default function PersonasScreen() {
             style={[styles.input, { color: theme.colors.text, backgroundColor: theme.colors.bg, borderColor: theme.colors.border }]}
             value={relacion}
             onChangeText={setRelacion}
-            placeholder="Vínculo (opcional), por ejemplo: mamá"
+            placeholder="Vínculo, referencial (opcional)"
             placeholderTextColor={theme.colors.subtext}
             editable={!saving}
             maxLength={60}

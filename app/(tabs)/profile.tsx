@@ -143,7 +143,7 @@ const styles = StyleSheet.create({
   scroll: {
     paddingHorizontal: 20,
     paddingTop: 16,
-    paddingBottom: 40,
+    paddingBottom: 72,
   },
   header: { paddingHorizontal: 20, paddingVertical: 18, borderRadius: 20, marginBottom: 24 },
   headerEyebrow: { fontSize: 11, fontWeight: '700', letterSpacing: 1.1, color: 'rgba(255,255,255,0.76)' },

@@ -8,7 +8,7 @@
 
 # MediRecordatorio
 
-**App de recordatorio de medicación** desarrollada como Parcial 1 de la materia **Aplicaciones Móviles** (ISTEA — 2do año, 2026).
+**App de recordatorio de medicación** iniciada y aprobada como Parcial 1 de **Aplicaciones Móviles** (ISTEA — 2do año, 2026), y continuada después de esa entrega.
 
 Stack: **Expo SDK 57 · React Native 0.86 · React 19 · TypeScript 6**
 
@@ -28,7 +28,7 @@ De las 5 opciones propuestas en el parcial, elegí **Recordatorio de medicación
 
 - **Node.js 18+** (recomendado 22)
 - **Expo Go** instalado en el celular (Android o iOS) — [Play Store](https://play.google.com/store/apps/details?id=host.exp.exponent) / [App Store](https://apps.apple.com/app/expo-go/id982107779)
-- PC y celular en **la misma red WiFi**
+- Para conexión LAN, PC y celular en **la misma red WiFi**
 
 ### Pasos
 
@@ -46,7 +46,7 @@ npx expo start --clear
 # 4. Escanear el QR con Expo Go desde el celular
 ```
 
-> **Alternativa si hay problemas de red local:**
+> **Si el dispositivo no conecta por la red local:**
 > ```bash
 > npx expo start --clear --tunnel
 > ```
@@ -59,7 +59,7 @@ Para revisar la interfaz sin conectar un celular, inicia Expo para web:
 npx expo start --web
 ```
 
-También puedes usar `npm run web`. La vista web permite revisar colores y distribución; el teclado y las notificaciones pueden comportarse distinto que en Android o iOS.
+También se puede usar `npm run web`. La vista web permite revisar colores y distribución; el teclado y las notificaciones pueden comportarse distinto que en Android o iOS.
 
 ### Verificar TypeScript
 
@@ -67,62 +67,48 @@ También puedes usar `npm run web`. La vista web permite revisar colores y distr
 npx tsc --noEmit
 ```
 
-### Correr los tests
+### Pruebas automatizadas
 
 ```bash
 npm test
 ```
 
-Resultado esperado:
-
-```text
-PASS  src/components/ui/__tests__/EmptyState.test.tsx
-PASS  src/utils/__tests__/validators.test.ts
-
-Test Suites: 2 passed, 2 total
-Tests:       19 passed, 19 total
-```
-
-### Captura de resultado de los tests en consola
-
-![Tests pasando](docs/test.png)
+Las pruebas cubren validaciones de formularios, cálculo de próximas tomas y el componente `EmptyState`. El resultado mostrado por Jest corresponde a la versión instalada en ese momento; no se fija una cantidad de suites o casos en este README.
 
 ---
 
 ## Funcionalidades
 
-### Evolución posterior al primer parcial
+### Funcionalidades actuales
 
-- Cada medicamento permite registrar el momento indicado respecto de las comidas (antes, durante, después o sin indicar) y observaciones opcionales. Las notas anteriores se conservan como observaciones al editar.
-- Cada cuenta tiene una ficha propia y puede crear fichas locales para otras personas. Los medicamentos se asignan a una ficha y el inicio de la app los separa por persona.
-- Las tomas se registran como realizadas u omitidas, con fecha. La pantalla muestra el registro más reciente, conserva los 100 eventos más recientes por medicamento y permite consultar el historial ordenado por fecha.
-- Los horarios se pueden expresar como un intervalo (cada 4, 6, 8, 12 o 24 horas) o como una o más horas diarias. Los avisos se repiten según el plan y registrar una toma no desplaza los horarios posteriores.
-- El aviso de prueba de 15 segundos es opcional y se envía aparte; no modifica el horario del medicamento.
-- Al editar o eliminar un medicamento, se actualiza o cancela su notificación pendiente cuando la plataforma lo permite.
-- Login y registro se desplazan con el teclado abierto. En Android se configura el ajuste de la ventana para mantener visibles los campos.
-- La interfaz usa una paleta verde azulada y menta, tarjetas más claras y componentes coherentes entre los temas claro y oscuro. Se ampliaron textos y áreas táctiles y se agregaron etiquetas para lectores de pantalla en controles principales.
+- Cada cuenta tiene una ficha propia y puede crear fichas locales para otras personas. Los medicamentos se asignan a una ficha y Home permite cambiar entre ellas.
+- Los medicamentos admiten horarios por intervalo o por horas específicas del día, indicación opcional sobre comidas, observaciones y foto de referencia.
+- Se pueden registrar tomas realizadas u omitidas, consultar el historial y ver el próximo aviso.
+- Las notificaciones locales se programan según el plan cuando la plataforma y los permisos lo permiten. El aviso opcional de prueba no cambia el horario del medicamento.
+- Las fotos se eligen con cámara o galería, se procesan y se guardan en el dispositivo.
+- La interfaz tiene tema claro/oscuro, formularios adaptados al teclado, componentes de carga/error/vacío y etiquetas de accesibilidad en acciones principales.
 
 ### Alcance y limitaciones del prototipo
 
 - Las cuentas y los medicamentos se guardan localmente. El modo cuidador funciona en la misma cuenta y dispositivo; todavía no hay perfiles de cuidador ni sincronización entre dispositivos.
-- La autenticación es demostrativa: no existe un servidor y el token es simulado. Las contraseñas se guardan sin cifrar en AsyncStorage; no usar datos reales de salud con este prototipo.
+- La autenticación es demostrativa: no existe un servidor y el token es simulado. Las contraseñas se guardan sin cifrar en AsyncStorage; en web el token usa `localStorage`. No usar datos reales de salud con este prototipo.
 - Si el permiso de notificaciones se deniega, el plan se guarda pero no se programan avisos. El fallback de Expo Go usa temporizadores de la app y no es fiable si se cierra la app; las notificaciones repetidas requieren soporte nativo.
 - El momento de comida y las observaciones son datos ingresados por el usuario a partir de sus indicaciones; la app no recomienda ni valida instrucciones médicas.
 
 
-### Autenticación local
+### Autenticación local de demostración
 
 - Registro con nombre, email y contraseña (validación de formato y coincidencia).
 
 - Login con validación de credenciales contra los usuarios guardados en el dispositivo.
 
-- Sesión persistente: el token se guarda cifrado en SecureStore (Keychain iOS / Keystore Android).
+- Sesión persistente: en móvil el token se guarda en SecureStore (Keychain iOS / Keystore Android); en web usa `localStorage`.
 
 - Bloqueo de acceso: no se puede entrar sin loguearse.
 
-### Gestión de medicamentos
+### Medicamentos y fichas
 
-- Alta de medicamentos con nombre, dosis, frecuencia (4h / 6h / 8h / 12h / 24h) y próxima toma.
+- Alta y edición de medicamentos con dosis, horarios por intervalo o por horas diarias, indicaciones y foto opcional.
 
 - Lista con estado de la toma (pendiente / tomada / omitida) y colores.
 
@@ -130,7 +116,7 @@ Tests:       19 passed, 19 total
 
 - Eliminar medicamento con confirmación.
 
-- Persistencia en AsyncStorage, aislada por usuario.
+- Fichas de personas en el mismo dispositivo; persistencia local aislada por cuenta.
 
 ### Notificaciones locales
 
@@ -148,19 +134,11 @@ Tests:       19 passed, 19 total
 
 - Sincronización con React Native Paper.
 
-### Cobertura de testing
-
-- 19 tests unitarios con Jest + React Native Testing Library.
-
-    * Tests de funciones puras (validadores de login y registro).
-
-    * Tests de componente reutilizable (EmptyState).
-
 ---
 
 ## Capturas
 
-> Estas capturas corresponden a la versión original del primer parcial y se conservan sin cambios. Más adelante se agregarán capturas nuevas para documentar y comparar la interfaz actualizada.
+> Estas capturas documentan la interfaz presentada en el primer parcial. La app evolucionó después; las imágenes todavía no representan todas las pantallas actuales.
 
 ### Autenticación
 
@@ -196,8 +174,10 @@ AppMedicamentos/
 │   ├── _layout.tsx               # Stack raíz + Providers (SafeArea, Theme, Auth)
 │   ├── index.tsx                 # Login
 │   ├── register.tsx              # Registro
+│   ├── personas.tsx              # Administración de fichas de personas
 │   ├── medicamento/
-│   │   └── nuevo.tsx             # Alta de medicamento con notificación
+│   │   ├── nuevo.tsx             # Alta y edición de medicamentos
+│   │   └── [id]/historial.tsx    # Historial de tomas
 │   └── (tabs)/                   # Grupo de tabs
 │       ├── _layout.tsx           # Tab Navigator
 │       ├── home.tsx              # Lista de medicamentos
@@ -208,20 +188,23 @@ AppMedicamentos/
 │   │   ├── EmptyState.tsx
 │   │   ├── ErrorState.tsx
 │   │   ├── LoadingState.tsx
+│   │   ├── ScreenHeader.tsx
+│   │   ├── ImagePickerField.tsx
 │   │   └── __tests__/
 │   │       └── EmptyState.test.tsx
 │   ├── config/
 │   │   └── constants.ts          # Estados, frecuencias, claves de storage
 │   ├── features/
 │   │   ├── auth/                 # AuthContext + useAuth
-│   │   ├── medicamentos/         # medicamentoService + useMedicamentos
-│   │   └── notifications/        # notificationService
+│   │   ├── medicamentos/         # Datos, horarios y estado de medicamentos
+│   │   │   └── __tests__/        # Pruebas de cálculos de horarios
+│   │   ├── personas/             # Fichas locales
+│   │   └── notifications/        # Programación y sincronización de avisos
 │   ├── services/
+│   │   ├── mediaService.ts       # Procesamiento y persistencia de imágenes
 │   │   ├── storage.ts            # Wrapper de AsyncStorage
 │   │   └── secureStorage.ts      # Wrapper de SecureStore (mobile) / localStorage (web)
-│   ├── theme/
-│   │   ├── ThemeContext.tsx      # Provider del tema claro/oscuro
-│   │   └── useTheme.ts           # Hook con la paleta de colores
+│   ├── theme/                    # Tema claro/oscuro
 │   └── utils/
 │       ├── validators.ts         # Funciones puras de validación
 │       ├── dialogs.ts            # Diálogos cross-platform
@@ -245,8 +228,11 @@ AppMedicamentos/
 | `react` | `19.2.3` | Librería de UI |
 | `expo-router` | `~57.0.23` | Navegación basada en archivos (sobre React Navigation) |
 | `@react-native-async-storage/async-storage` | `2.2.0` | Persistencia de datos locales |
-| `expo-secure-store` | `~57.0.4` | Token cifrado en Keychain/Keystore |
+| `expo-secure-store` | `~57.0.4` | Almacenamiento seguro del token en móvil |
 | `expo-notifications` | `~57.0.21` | Notificaciones locales |
+| `expo-image-picker` | `~57.0.20` | Cámara y selección desde galería |
+| `expo-image-manipulator` | `~57.0.21` | Compresión y procesamiento de imágenes |
+| `expo-file-system` | `~57.0.7` | Persistencia local de imágenes |
 | `@expo/vector-icons` | `^15.0.3` | Íconos (Ionicons) |
 | `react-native-paper` | `^5.15.0` | Componentes Material Design |
 | `jest-expo` | `~57.0.5` | Preset de Jest para Expo |
@@ -254,7 +240,9 @@ AppMedicamentos/
 
 ---
 
-## Video demo
+## Video de la entrega del primer parcial
+
+> El video muestra la versión presentada en el primer parcial, anterior a varias mejoras actuales de interfaz y funcionalidades.
 
 **[Ver video demo en YouTube](https://youtube.com/shorts/JA4iC77T3zY)**
 
@@ -276,8 +264,9 @@ El proyecto usa expo-notifications con un fallback con Alert.alert cuando el mó
 
 Cada medicamento guarda el userEmail del usuario que lo creó. El servicio filtra por ese email, por lo que cada cuenta ve únicamente sus propios medicamentos.
 
-### Testing (notas técnicas)
+### Pruebas incluidas
 
 - **Funciones puras** (`validators.ts`): validan formato de email, longitud de contraseña y coincidencia de campos.
-- **Componente reutilizable** (`EmptyState.tsx`): verifica renderizado de título, subtítulo y emoji.
+- **Componente reutilizable** (`EmptyState.tsx`): verifica su renderizado y contenido.
+- **Cálculos de horarios** (`calcularTomas.ts`): cubren el cálculo de próximas tomas.
 - Ejecutar con: `npm test`.

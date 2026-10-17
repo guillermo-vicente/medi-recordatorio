@@ -6,6 +6,7 @@ export interface Persona {
   ownerEmail: string;
   nombre: string;
   relacion?: string;
+  avatarUri?: string;
   esPropia: boolean;
   createdAt: number;
 }
@@ -41,13 +42,14 @@ export const personaService = {
     return request;
   },
 
-  async add(ownerEmail: string, nombre: string, relacion?: string): Promise<Persona> {
+  async add(ownerEmail: string, nombre: string, relacion?: string, avatarUri?: string): Promise<Persona> {
     const all = await storage.get<Persona[]>(STORAGE_KEYS.PERSONAS, []);
     const persona: Persona = {
       id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
       ownerEmail,
       nombre: nombre.trim(),
       relacion: relacion?.trim() || undefined,
+      avatarUri,
       esPropia: false,
       createdAt: Date.now(),
     };
@@ -55,7 +57,7 @@ export const personaService = {
     return persona;
   },
 
-  async update(ownerEmail: string, id: string, changes: Pick<Persona, 'nombre' | 'relacion'>): Promise<void> {
+  async update(ownerEmail: string, id: string, changes: Pick<Persona, 'nombre' | 'relacion' | 'avatarUri'>): Promise<void> {
     const all = await storage.get<Persona[]>(STORAGE_KEYS.PERSONAS, []);
     await storage.set(
       STORAGE_KEYS.PERSONAS,

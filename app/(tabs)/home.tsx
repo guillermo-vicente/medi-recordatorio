@@ -23,7 +23,7 @@ import { LoadingState } from '../../src/components/ui/LoadingState';
 import { ErrorState } from '../../src/components/ui/ErrorState';
 import { EmptyState } from '../../src/components/ui/EmptyState';
 import { ScreenHeader } from '../../src/components/ui/ScreenHeader';
-import { useRouter, useFocusEffect } from 'expo-router';
+import { useRouter, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { showConfirm } from '../../src/utils/dialogs';
 import { usePersonas } from '../../src/features/personas/usePersonas';
 import { getOwnPersonaId } from '../../src/features/personas/personaService';
@@ -71,20 +71,27 @@ export default function HomeScreen() {
     const [accionesMedicamento, setAccionesMedicamento] = useState<Medicamento | null>(null);
     const [fotoAmpliada, setFotoAmpliada] = useState<Medicamento | null>(null);
     const [selectorPersonasVisible, setSelectorPersonasVisible] = useState(false);
+    const { personaId: personaIdParam } = useLocalSearchParams<{ personaId?: string }>();
+    const router = useRouter();
 
     useEffect(() => {
         if (!personas.length) return;
+        const requestedPersona = personas.find((persona) => persona.id === personaIdParam);
+        if (requestedPersona) {
+            setPersonaActivaId(requestedPersona.id);
+            router.setParams({ personaId: undefined });
+            return;
+        }
         if (!personaActivaId || !personas.some((persona) => persona.id === personaActivaId)) {
             setPersonaActivaId(personas[0].id);
         }
-    }, [personas, personaActivaId]);
+    }, [personas, personaActivaId, personaIdParam, router]);
 
     const personaActiva = personas.find((persona) => persona.id === personaActivaId);
+    const avatarPersonaActiva = personaActiva?.esPropia ? undefined : personaActiva?.avatarUri;
     const medicamentosPersona = medicamentos.filter((item) => item.personaId === personaActivaId);
 
-    const router = useRouter();
-
-    // recarga la lista cada vez que el Home toma foco
+    // Recarga los medicamentos y las personas cada vez que Home recupera el foco.
     useFocusEffect(
         useCallback(() => {
             reloadSilently();
@@ -304,7 +311,7 @@ export default function HomeScreen() {
             style={[styles.container, { backgroundColor: theme.colors.bg }]}
             edges={['top']}
         >
-            <ScreenHeader title={`Hola, ${user?.name ?? 'Usuario'}`} style={styles.headerFrame} />
+            <ScreenHeader title={`Hola, ${user?.name ?? 'Usuario'}`} avatarUri={user?.avatarUri} style={styles.headerFrame} />
 
             <View style={styles.peopleSelector}>
                 <View style={styles.peopleSelectorHeader}>
@@ -313,17 +320,23 @@ export default function HomeScreen() {
                             style={styles.activePersonButton}
                             onPress={() => setSelectorPersonasVisible(true)}
                             accessibilityRole="button"
-                            accessibilityLabel={`Cambiar persona. Actualmente ${personaActiva?.nombre ?? 'persona'}`}
+                            accessibilityLabel={`Cambiar persona. Actualmente ${personaActiva?.esPropia ? 'Mis Medicamentos' : personaActiva?.nombre ?? 'persona'}`}
                         >
+                            {avatarPersonaActiva ? (
+                                <Image
+                                    source={{ uri: avatarPersonaActiva }}
+                                    style={styles.activePersonAvatar}
+                                />
+                            ) : null}
                             <Text style={[styles.activePersonName, { color: theme.colors.text }]} numberOfLines={1}>
-                                {personaActiva?.nombre ?? 'Medicamentos:'}
+                                {personaActiva?.esPropia ? 'Mis Medicamentos:' : personaActiva?.nombre ?? 'Mis Medicamentos:'}
                             </Text>
                             <Ionicons name="chevron-down" size={17} color={theme.colors.primary} />
                         </TouchableOpacity>
                     ) : (
                         <View style={styles.activePersonButton}>
                             <Text style={[styles.activePersonName, { color: theme.colors.text }]} numberOfLines={1}>
-                                Medicamentos:
+                                Mis Medicamentos:
                             </Text>
                         </View>
                     )}
@@ -412,18 +425,29 @@ export default function HomeScreen() {
                         <ScrollView style={styles.personOptionsList} contentContainerStyle={styles.personOptionsContent} showsVerticalScrollIndicator={false}>
                             {personas.map((persona) => {
                                 const selected = persona.id === personaActivaId;
+                                const avatarUri = persona.esPropia ? undefined : persona.avatarUri;
                                 return (
                                     <TouchableOpacity
                                         key={persona.id}
                                         style={[styles.personOption, { borderColor: selected ? theme.colors.primary : theme.colors.border, backgroundColor: selected ? `${theme.colors.primary}14` : theme.colors.card }]}
                                         onPress={() => { setPersonaActivaId(persona.id); setSelectorPersonasVisible(false); }}
                                         accessibilityRole="radio"
-                                        accessibilityLabel={persona.nombre}
+                                        accessibilityLabel={persona.esPropia ? 'Mis Medicamentos' : persona.nombre}
                                         accessibilityState={{ checked: selected }}
                                     >
+                                        {!persona.esPropia ? (
+                                            <View style={[styles.personOptionAvatar, { backgroundColor: `${theme.colors.primary}18` }]}>
+                                                {avatarUri ? (
+                                                    <Image source={{ uri: avatarUri }} style={styles.personOptionAvatarImage} />
+                                                ) : (
+                                                    <Ionicons name="people-outline" size={19} color={theme.colors.primary} />
+                                                )}
+                                            </View>
+                                        ) : null}
+                                        <Text style={[styles.personOptionText, { color: theme.colors.text }]}>
+                                            {persona.esPropia ? 'Mis Medicamentos:' : persona.nombre}
+                                        </Text>
                                         <Ionicons name={selected ? 'radio-button-on' : 'radio-button-off'} size={21} color={selected ? theme.colors.primary : theme.colors.subtext} />
-                                        <Text style={[styles.personOptionText, { color: theme.colors.text }]}>{persona.nombre}</Text>
-                                        {persona.esPropia ? <Text style={[styles.personOptionMeta, { color: theme.colors.subtext }]}>Mi ficha</Text> : null}
                                     </TouchableOpacity>
                                 );
                             })}
@@ -470,7 +494,8 @@ const styles = StyleSheet.create({
     },
     peopleSelector: { paddingHorizontal: 20, marginBottom: 12 },
     peopleSelectorHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8 },
-    activePersonButton: { flex: 1, minHeight: 46, flexDirection: 'row', alignItems: 'center', gap: 4 },
+    activePersonButton: { flex: 1, minHeight: 46, flexDirection: 'row', alignItems: 'center', gap: 8 },
+    activePersonAvatar: { width: 32, height: 32, borderRadius: 16 },
     activePersonName: { flexShrink: 1, fontSize: 15, fontWeight: '700' },
     peopleActions: { flexDirection: 'row', alignItems: 'center' },
     addPersonButton: { minHeight: 42, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 2, paddingHorizontal: 10, borderRadius: 13 },
@@ -565,7 +590,9 @@ const styles = StyleSheet.create({
     photoViewerImage: { width: '100%', height: 320, borderRadius: 16, backgroundColor: '#101818' },
     photoViewerEdit: { minHeight: 48, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, borderRadius: 13 },
     photoViewerEditText: { fontSize: 15, fontWeight: '700' },
-    personOption: { minHeight: 52, flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 12, borderRadius: 13, borderWidth: 1 },
+    personOption: { minHeight: 60, flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 12, borderRadius: 13, borderWidth: 1 },
+    personOptionAvatar: { width: 38, height: 38, borderRadius: 19, alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
+    personOptionAvatarImage: { width: '100%', height: '100%' },
     personOptionsList: { maxHeight: 360 },
     personOptionsContent: { gap: 8, paddingBottom: 4 },
     personOptionText: { flex: 1, fontSize: 16, fontWeight: '600' },

@@ -8,8 +8,8 @@
     "ios": {
       "supportsTablet": true,
       "infoPlist": {
-        "NSCameraUsageDescription": "Esta app usa la cámara para sacar fotos de los medicamentos o recetas.",
-        "NSPhotoLibraryUsageDescription": "Esta app accede a tu galería para adjuntar fotos de medicamentos o recetas.",
+        "NSCameraUsageDescription": "Esta app usa la cámara para sacar fotos de perfil, medicamentos o recetas.",
+        "NSPhotoLibraryUsageDescription": "Esta app accede a tu galería para elegir fotos de perfil, medicamentos o recetas.",
         "NSPhotoLibraryAddUsageDescription": "Esta app guarda fotos en tu galería."
       }
     },
@@ -30,13 +30,13 @@
       [
         "expo-camera",
         {
-          "cameraPermission": "Esta app usa la cámara para sacar fotos de los medicamentos o recetas."
+          "cameraPermission": "Esta app usa la cámara para sacar fotos de perfil, medicamentos o recetas."
         }
       ],
       [
         "expo-image-picker",
         {
-          "photosPermission": "Esta app accede a tu galería para adjuntar fotos de medicamentos o recetas."
+          "photosPermission": "Esta app accede a tu galería para elegir fotos de perfil, medicamentos o recetas."
         }
       ]
     ],

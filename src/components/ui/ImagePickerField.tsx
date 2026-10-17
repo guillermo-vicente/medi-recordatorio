@@ -17,6 +17,8 @@ interface Props {
   onChange: (uri: string | undefined) => void;
   label?: string;
   helperText?: string;
+  placeholderTitle?: string;
+  placeholderDescription?: string;
   aspect?: [number, number];
   disabled?: boolean;
 }
@@ -26,6 +28,8 @@ export function ImagePickerField({
   onChange,
   label = 'Foto',
   helperText,
+  placeholderTitle = 'Agregá una foto',
+  placeholderDescription = 'De la caja o de la receta. Es opcional.',
   aspect = [1, 1],
   disabled = false,
 }: Props) {
@@ -92,8 +96,10 @@ export function ImagePickerField({
               <Ionicons name="image-outline" size={23} color={theme.colors.primary} />
             </View>
             <View style={styles.placeholderCopy}>
-              <Text style={[styles.placeholderTitle, { color: theme.colors.text }]}>Agregá una foto</Text>
-              <Text style={[styles.placeholderText, { color: theme.colors.subtext }]}>De la caja o de la receta. Es opcional.</Text>
+              <Text style={[styles.placeholderTitle, { color: theme.colors.text }]}>{placeholderTitle}</Text>
+              {placeholderDescription ? (
+                <Text style={[styles.placeholderText, { color: theme.colors.subtext }]}>{placeholderDescription}</Text>
+              ) : null}
             </View>
           </View>
         )}

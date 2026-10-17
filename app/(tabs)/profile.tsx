@@ -1,4 +1,7 @@
 import {
+  ActivityIndicator,
+  Alert,
+  Image,
   StyleSheet,
   Switch,
   Text,
@@ -7,16 +10,20 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { useRouter } from 'expo-router';
+import { useNavigation, useRouter } from 'expo-router';
 import Constants from 'expo-constants';
+import { useState } from 'react';
 import { useAuth } from '../../src/features/auth/useAuth';
 import { useTheme } from '../../src/theme/useTheme';
 import { useAppTheme } from '../../src/theme/ThemeContext';
 import { ScreenHeader } from '../../src/components/ui/ScreenHeader';
+import { mediaService } from '../../src/services/mediaService';
 
 export default function ProfileScreen() {
   const router = useRouter();
-  const { user, signOut } = useAuth();
+  const tabsNavigation = useNavigation('/(tabs)') as { navigate: (screen: string) => void };
+  const { user, signOut, updateAvatar } = useAuth();
+  const [avatarBusy, setAvatarBusy] = useState(false);
   const theme = useTheme();
   const { isDark, toggleTheme } = useAppTheme();
   const appVersion = Constants.expoConfig?.version ?? '0.1.0';
@@ -24,6 +31,61 @@ export default function ProfileScreen() {
   const handleLogout = async () => {
     await signOut();
     router.replace('/');
+  };
+
+  const changeAvatar = async (source: 'camera' | 'gallery') => {
+    if (avatarBusy) return;
+    setAvatarBusy(true);
+    let newAvatarUri: string | undefined;
+    try {
+      const image = source === 'camera'
+        ? await mediaService.takePhoto()
+        : await mediaService.pickImage();
+      if (!image) return;
+
+      newAvatarUri = image.uri;
+      const previousAvatarUri = user?.avatarUri;
+      await updateAvatar(newAvatarUri);
+      if (previousAvatarUri && previousAvatarUri !== newAvatarUri) {
+        await mediaService.deleteImage(previousAvatarUri);
+      }
+    } catch (error) {
+      if (newAvatarUri) await mediaService.deleteImage(newAvatarUri);
+      Alert.alert(
+        source === 'camera' ? 'No se pudo abrir la cámara' : 'No se pudo abrir la galería',
+        error instanceof Error ? error.message : 'Intentá nuevamente.'
+      );
+    } finally {
+      setAvatarBusy(false);
+    }
+  };
+
+  const removeAvatar = async () => {
+    if (!user?.avatarUri || avatarBusy) return;
+    const previousAvatarUri = user.avatarUri;
+    setAvatarBusy(true);
+    try {
+      await updateAvatar(undefined);
+      await mediaService.deleteImage(previousAvatarUri);
+    } catch (error) {
+      Alert.alert('No se pudo quitar la foto', error instanceof Error ? error.message : 'Intentá nuevamente.');
+    } finally {
+      setAvatarBusy(false);
+    }
+  };
+
+  const showAvatarOptions = () => {
+    const options = [
+      { text: 'Tomar una foto', onPress: () => void changeAvatar('camera') },
+      { text: 'Elegir de la galería', onPress: () => void changeAvatar('gallery') },
+    ];
+    if (user?.avatarUri) {
+      options.push({ text: 'Quitar foto', onPress: () => void removeAvatar() });
+    }
+    Alert.alert('Foto de perfil', 'Elegí de dónde querés obtener la imagen.', [
+      ...options.map((option) => ({ ...option, style: 'default' as const })),
+      { text: 'Cancelar', style: 'cancel' },
+    ]);
   };
 
   return (
@@ -34,19 +96,42 @@ export default function ProfileScreen() {
       <View style={styles.content}>
         <ScreenHeader title="Mi perfil" style={styles.headerFrame} />
 
-        <Text style={[styles.sectionLabel, { color: theme.colors.subtext }]}>CUENTA · SOLO LECTURA</Text>
+        <Text style={[styles.sectionLabel, { color: theme.colors.subtext }]}>CUENTA · DATOS LOCALES</Text>
         <View style={[styles.userCard, { backgroundColor: theme.colors.card, borderColor: theme.colors.border }]}>
-          <View style={[styles.avatar, { backgroundColor: theme.colors.primary }]}>
-            <Ionicons name="person" size={34} color={theme.colors.onPrimary} />
-          </View>
+          <TouchableOpacity
+            style={[styles.avatar, { backgroundColor: theme.colors.primary }]}
+            onPress={showAvatarOptions}
+            disabled={avatarBusy}
+            activeOpacity={0.8}
+            accessibilityRole="button"
+            accessibilityLabel={user?.avatarUri ? 'Cambiar foto de perfil' : 'Agregar foto de perfil'}
+          >
+            {user?.avatarUri ? (
+              <Image source={{ uri: user.avatarUri }} style={styles.avatarImage} />
+            ) : (
+              <Ionicons name="person" size={34} color={theme.colors.onPrimary} />
+            )}
+            <View style={[styles.avatarAction, { backgroundColor: theme.colors.card, borderColor: theme.colors.border }]}>
+              {avatarBusy
+                ? <ActivityIndicator size="small" color={theme.colors.primary} />
+                : <Ionicons name="camera" size={14} color={theme.colors.primary} />}
+            </View>
+          </TouchableOpacity>
           <View style={styles.userInfo}>
-            <Text style={[styles.userName, { color: theme.colors.text }]}>
-              {user?.name ?? 'Usuario'}
-            </Text>
+            <TouchableOpacity
+              onPress={() => tabsNavigation.navigate('home')}
+              activeOpacity={0.7}
+              accessibilityRole="button"
+              accessibilityLabel="Ir a Medicamentos"
+            >
+              <Text style={[styles.userName, { color: theme.colors.text }]}>
+                {user?.name ?? 'Usuario'}
+              </Text>
+            </TouchableOpacity>
             <Text style={[styles.userEmail, { color: theme.colors.subtext }]}>
               {user?.email ?? 'Sin correo disponible'}
             </Text>
-            <Text style={[styles.readOnlyHint, { color: theme.colors.subtext }]}>Datos locales de esta cuenta</Text>
+            <Text style={[styles.readOnlyHint, { color: theme.colors.subtext }]}>Tocá la imagen para cambiarla</Text>
           </View>
         </View>
 
@@ -157,6 +242,23 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 16,
+    position: 'relative',
+  },
+  avatarImage: {
+    width: '100%',
+    height: '100%',
+    borderRadius: 36,
+  },
+  avatarAction: {
+    position: 'absolute',
+    right: -2,
+    bottom: -2,
+    width: 26,
+    height: 26,
+    borderWidth: 2,
+    borderRadius: 13,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   userInfo: { flex: 1 },
   userName: { fontSize: 20, fontWeight: '800' },

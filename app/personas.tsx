@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { useEffect, useRef, useState } from 'react';
+import { Image, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
@@ -7,6 +7,8 @@ import { usePersonas } from '../src/features/personas/usePersonas';
 import { useMedicamentos } from '../src/features/medicamentos/useMedicamentos';
 import { useTheme } from '../src/theme/useTheme';
 import { showAlert, showConfirm } from '../src/utils/dialogs';
+import { ImagePickerField } from '../src/components/ui/ImagePickerField';
+import { mediaService } from '../src/services/mediaService';
 
 export default function PersonasScreen() {
   const router = useRouter();
@@ -15,7 +17,13 @@ export default function PersonasScreen() {
   const { medicamentos } = useMedicamentos();
   const [nombre, setNombre] = useState('');
   const [relacion, setRelacion] = useState('');
+  const [avatarUri, setAvatarUri] = useState<string | undefined>();
+  const pendingAvatarUri = useRef<string | undefined>(undefined);
   const [saving, setSaving] = useState(false);
+
+  useEffect(() => () => {
+    if (pendingAvatarUri.current) void mediaService.deleteImage(pendingAvatarUri.current);
+  }, []);
 
   const handleAdd = async () => {
     if (!nombre.trim()) {
@@ -24,9 +32,11 @@ export default function PersonasScreen() {
     }
     setSaving(true);
     try {
-      await add(nombre, relacion);
+      await add(nombre, relacion, avatarUri);
+      pendingAvatarUri.current = undefined;
       setNombre('');
       setRelacion('');
+      setAvatarUri(undefined);
     } catch (error) {
       showAlert('No se pudo crear la ficha', error instanceof Error ? error.message : undefined);
     } finally {
@@ -90,6 +100,18 @@ export default function PersonasScreen() {
             maxLength={60}
             accessibilityLabel="Vínculo con la persona, opcional"
           />
+          <ImagePickerField
+            value={avatarUri}
+            onChange={(nextUri) => {
+              const previousUri = pendingAvatarUri.current;
+              pendingAvatarUri.current = nextUri;
+              setAvatarUri(nextUri);
+              if (previousUri && previousUri !== nextUri) void mediaService.deleteImage(previousUri);
+            }}
+            label="Avatar (opcional)"
+            placeholderDescription=""
+            disabled={saving}
+          />
           <TouchableOpacity
             style={[styles.addButton, { backgroundColor: theme.colors.primary }]}
             onPress={handleAdd}
@@ -107,13 +129,30 @@ export default function PersonasScreen() {
           <Text style={[styles.empty, { color: theme.colors.subtext }]}>Cargando fichas…</Text>
         ) : personas.map((persona) => {
           const count = medicamentos.filter((item) => item.personaId === persona.id).length;
+          const openMedicamentos = () => router.navigate({
+            pathname: '/(tabs)/home',
+            params: { personaId: persona.id },
+          });
           return (
             <View key={persona.id} style={[styles.personCard, { backgroundColor: theme.colors.card, borderColor: theme.colors.border }]}>
               <View style={[styles.personIcon, { backgroundColor: `${theme.colors.primary}18` }]}>
-                <Ionicons name={persona.esPropia ? 'person-outline' : 'people-outline'} size={22} color={theme.colors.primary} />
+                {persona.avatarUri ? (
+                  <Image source={{ uri: persona.avatarUri }} style={styles.personAvatarImage} />
+                ) : (
+                  <Ionicons name={persona.esPropia ? 'person-outline' : 'people-outline'} size={22} color={theme.colors.primary} />
+                )}
               </View>
               <View style={styles.personInfo}>
-                <Text style={[styles.personName, { color: theme.colors.text }]}>{persona.nombre}</Text>
+                <TouchableOpacity
+                  onPress={openMedicamentos}
+                  activeOpacity={0.7}
+                  accessibilityRole="button"
+                  accessibilityLabel={`Ver medicamentos de ${persona.esPropia ? 'mi ficha' : persona.nombre}`}
+                >
+                  <Text style={[styles.personName, { color: theme.colors.text }]}>
+                    {persona.esPropia ? 'Mis Medicamentos' : persona.nombre}
+                  </Text>
+                </TouchableOpacity>
                 <Text style={[styles.personMeta, { color: theme.colors.subtext }]}>
                   {persona.esPropia ? 'Mi ficha' : persona.relacion || 'Persona a mi cuidado'} · {count} {count === 1 ? 'medicamento' : 'medicamentos'}
                 </Text>
@@ -150,7 +189,8 @@ const styles = StyleSheet.create({
   listTitle: { fontSize: 13, fontWeight: '700', letterSpacing: 1, marginTop: 14, marginBottom: 2 },
   empty: { fontSize: 15, paddingVertical: 18 },
   personCard: { flexDirection: 'row', alignItems: 'center', borderRadius: 16, borderWidth: 1, padding: 14, gap: 12 },
-  personIcon: { width: 46, height: 46, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
+  personIcon: { width: 46, height: 46, borderRadius: 23, alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
+  personAvatarImage: { width: '100%', height: '100%' },
   personInfo: { flex: 1 },
   personName: { fontSize: 17, fontWeight: '700' },
   personMeta: { fontSize: 14, lineHeight: 19, marginTop: 3 },

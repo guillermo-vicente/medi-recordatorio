@@ -85,7 +85,9 @@ Las pruebas cubren validaciones de formularios, cálculo de próximas tomas y el
 - Los medicamentos admiten horarios por intervalo o por horas específicas del día, indicación opcional sobre comidas, observaciones y foto de referencia.
 - Se pueden registrar tomas realizadas u omitidas, consultar el historial y ver el próximo aviso.
 - Las notificaciones locales se programan según el plan cuando la plataforma y los permisos lo permiten. El aviso opcional de prueba no cambia el horario del medicamento.
-- Las fotos se eligen con cámara o galería, se procesan y se guardan en el dispositivo.
+- Las fotos de medicamentos y la imagen de perfil se eligen con cámara o galería, se procesan y se guardan en el dispositivo.
+- Las fichas de otras personas pueden incluir un avatar; Home muestra las imágenes disponibles junto al saludo del usuario, la persona activa y cada opción del selector.
+- Desde la lista de fichas de seguimiento se puede tocar un nombre para abrir en Home los medicamentos de esa persona o los propios.
 - La interfaz tiene tema claro/oscuro, formularios adaptados al teclado, componentes de carga/error/vacío y etiquetas de accesibilidad en acciones principales.
 
 ### Alcance y limitaciones del prototipo
@@ -159,6 +161,8 @@ Las pruebas cubren validaciones de formularios, cálculo de próximas tomas y el
 | ![Notificación](docs/05-notificacion.png) | ![Home con tomado](docs/06-home-con-tomado.png) |
 
 ### Eliminar y perfil
+
+En Perfil, tocá el avatar para tomar una foto, elegir una imagen de la galería o quitar la foto actual. La imagen queda guardada localmente y asociada a la cuenta del dispositivo. Al tocar el nombre, volvés a Medicamentos.
 
 | Confirmar eliminación | Perfil con modo oscuro |
 |---|---|

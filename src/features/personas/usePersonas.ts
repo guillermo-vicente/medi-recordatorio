@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useAuth } from '../auth/useAuth';
 import { medicamentoService } from '../medicamentos/medicamentoService';
+import { mediaService } from '../../services/mediaService';
 import { Persona, personaService } from './personaService';
 
 export function usePersonas() {
@@ -28,10 +29,10 @@ export function usePersonas() {
 
   useEffect(() => { void reload(); }, [reload]);
 
-  const add = useCallback(async (nombre: string, relacion?: string) => {
+  const add = useCallback(async (nombre: string, relacion?: string, avatarUri?: string) => {
     if (!user?.email) throw new Error('Usuario no autenticado');
     if (!nombre.trim()) throw new Error('El nombre es obligatorio.');
-    const created = await personaService.add(user.email, nombre, relacion);
+    const created = await personaService.add(user.email, nombre, relacion, avatarUri);
     await reload();
     return created;
   }, [user?.email, reload]);
@@ -48,6 +49,7 @@ export function usePersonas() {
     const medication = (await medicamentoService.list(user.email)).find((item) => item.personaId === persona.id);
     if (medication) throw new Error('Primero reasigná o eliminá sus medicamentos.');
     await personaService.remove(user.email, persona.id);
+    await mediaService.deleteImage(persona.avatarUri);
     await reload();
   }, [user?.email, reload]);
 

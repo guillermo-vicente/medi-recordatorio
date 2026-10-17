@@ -383,7 +383,7 @@ export default function NuevoMedicamentoScreen() {
               >
                 <View style={styles.optionalHeadingText}>
                   <Text style={[styles.optionalTitle, { color: theme.colors.text }]}>Indicaciones y notas</Text>
-                  <Text style={[styles.helperText, { color: theme.colors.subtext }]}>Opcional · comida, observaciones y prueba</Text>
+                  <Text style={[styles.helperText, { color: theme.colors.subtext }]}>Opcional · comida, observaciones.</Text>
                 </View>
                 <Ionicons name={mostrarDetalles ? 'chevron-up' : 'chevron-down'} size={20} color={theme.colors.primary} />
               </TouchableOpacity>
@@ -415,7 +415,7 @@ export default function NuevoMedicamentoScreen() {
                   <Text style={[styles.label, { color: theme.colors.subtext }]}>Observaciones</Text>
                   <TextInput
                     style={[styles.notesInput, { color: theme.colors.text, backgroundColor: theme.colors.bg, borderColor: theme.colors.border }]}
-                    placeholder="Otros detalles que quieras recordar."
+                    placeholder="Otros detalles a recordar."
                     placeholderTextColor={theme.colors.subtext}
                     value={observaciones}
                     onChangeText={setObservaciones}
@@ -543,7 +543,8 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     borderRadius: 14,
     height: 54,
-    marginTop: 16,
+    marginTop: 1,
+    marginBottom: 15,
     gap: 8,
   },
   disabled: { opacity: 0.6 },

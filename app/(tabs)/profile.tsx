@@ -1,5 +1,4 @@
 import {
-  ScrollView,
   StyleSheet,
   Switch,
   Text,
@@ -32,10 +31,7 @@ export default function ProfileScreen() {
       style={[styles.container, { backgroundColor: theme.colors.bg }]}
       edges={['top']}
     >
-      <ScrollView
-        contentContainerStyle={styles.scroll}
-        showsVerticalScrollIndicator={false}
-      >
+      <View style={styles.content}>
         <ScreenHeader title="Mi perfil" style={styles.headerFrame} />
 
         <Text style={[styles.sectionLabel, { color: theme.colors.subtext }]}>CUENTA · SOLO LECTURA</Text>
@@ -131,17 +127,18 @@ export default function ProfileScreen() {
             Cerrar sesión
           </Text>
         </TouchableOpacity>
-      </ScrollView>
+      </View>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  scroll: {
+  content: {
+    flex: 1,
     paddingHorizontal: 20,
     paddingTop: 16,
-    paddingBottom: 72,
+    paddingBottom: 16,
   },
   headerFrame: { marginBottom: 24 },
   sectionLabel: { fontSize: 12, fontWeight: '700', letterSpacing: 1.1, marginBottom: 8, marginLeft: 4 },
@@ -199,7 +196,8 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     borderWidth: 1,
     width: '100%',
-    marginTop: 20,
+    marginTop: 5,
+    marginBottom: 15,
   },
   logoutText: { fontSize: 15, fontWeight: '700' },
 });

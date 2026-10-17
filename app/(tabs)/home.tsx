@@ -332,10 +332,10 @@ export default function HomeScreen() {
                             onPress={() => router.push('../personas')}
                             style={[styles.addPersonButton, { backgroundColor: theme.colors.primary }]}
                             accessibilityRole="button"
-                            accessibilityLabel="Agregar persona"
+                            accessibilityLabel="Agregar ficha de persona"
                         >
                             <Ionicons name="add" size={19} color={theme.colors.onPrimary} />
-                            <Text style={[styles.addPersonText, { color: theme.colors.onPrimary }]}>Agregar</Text>
+                            <Text style={[styles.addPersonText, { color: theme.colors.onPrimary }]}>Persona</Text>
                         </TouchableOpacity>
                     </View>
                 </View>

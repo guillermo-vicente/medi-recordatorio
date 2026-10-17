@@ -1,4 +1,4 @@
-// Wrapper de AsyncStorage con tipado generico.
+// Encapsula AsyncStorage con operaciones genéricas tipadas.
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { STORAGE_KEYS } from '../config/constants';

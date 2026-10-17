@@ -1,6 +1,4 @@
-// Operaciones CRUD de medicamentos sobre AsyncStorage.
-// Cada medicamento está asociado al email del usuario que lo creó,
-// y el servicio filtra por ese email para aislar los datos.
+// Gestiona los medicamentos en AsyncStorage y los separa por cuenta mediante el email.
 
 import { calcularProximaToma } from './calcularTomas';
 export { calcularProximaToma, calcularProximaTomaDiaria } from './calcularTomas';
@@ -33,7 +31,7 @@ export interface Medicamento {
 }
 
 export const medicamentoService = {
-  // Devuelve solo los medicamentos del usuario actual
+  // Devuelve solo los medicamentos de la cuenta indicada.
   async list(userEmail: string): Promise<Medicamento[]> {
     const todos = await storage.get<Medicamento[]>(
       STORAGE_KEYS.MEDICAMENTOS,
@@ -86,7 +84,7 @@ export const medicamentoService = {
     return nuevo;
   },
 
-  // update y remove trabajan sobre la lista completa porque el id es único
+  // Las operaciones de actualización y eliminación recorren la lista completa por ID.
   async update(userEmail: string, id: string, changes: Partial<Medicamento>): Promise<void> {
     const todos = await storage.get<Medicamento[]>(
       STORAGE_KEYS.MEDICAMENTOS,

@@ -1,4 +1,4 @@
-// Provee el tema claro/oscuro y sincroniza React Native Paper con los colores de la app.
+// Provee los temas claro y oscuro y sincroniza React Native Paper con la paleta de la app.
 
 import React, {
   createContext,

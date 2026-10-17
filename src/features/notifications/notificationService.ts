@@ -1,6 +1,5 @@
-// Servicio de notificaciones locales. Expo-notifications ya no soporta push nativas.
-// Carga de modulo con require y en try/catch para no romper la app, y
-// Uso un fallback con Alert. 
+// Gestiona notificaciones locales y usa Alert como alternativa cuando no están disponibles.
+// La carga condicional evita que los entornos sin soporte nativo impidan iniciar la app.
 
 import { Alert, Platform } from 'react-native';
 
@@ -11,7 +10,7 @@ try {
   console.warn('[notifications] modulo no disponible en este entorno:', e);
 }
 
-// Guardado de IDs de los setTimeout del fallback para poder cancelarlos
+// Conserva los temporizadores del fallback para poder cancelarlos.
 let timeoutIds = new Map<string, ReturnType<typeof setTimeout>>();
 let intervalIds = new Map<string, ReturnType<typeof setInterval>>();
 let fallbackCounter = 0;
@@ -80,7 +79,7 @@ export const notificationService = {
 
     const saludo = userName ? `${userName}, es` : 'Es';
 
-    // Intento: notificacion nativa (development build o iOS)
+    // Intenta programar una notificación nativa en development build o iOS.
     if (Notifications) {
       try {
         const id = await Notifications.scheduleNotificationAsync({
@@ -100,7 +99,7 @@ export const notificationService = {
       }
     }
 
-    // Fallback: simular con Alert (Expo Go Android no soporta push nativas)
+    // Expo Go Android no admite notificaciones nativas; se usa Alert como alternativa.
     console.warn(
       '[notifications] usando fallback con Alert (limitacion de Expo Go Android)'
     );
@@ -111,7 +110,7 @@ export const notificationService = {
         'Recordatorio de medicamento',
         `${saludo} hora de tomar ${nombre}`
       );
-      // Limpiar el id del array una vez disparado
+      // Elimina el temporizador cuando se muestra la alerta.
       timeoutIds.delete(fallbackId);
     }, segundosHastaDisparar * 1000);
 
@@ -236,15 +235,15 @@ export const notificationService = {
     }
   },
 
-  // Cancela todas las notificaciones pendientes, nativas + fallback
+  // Cancela las notificaciones nativas y los temporizadores pendientes.
   async cancelAll(): Promise<void> {
-    // Cancelar los setTimeout pendientes del fallback
+    // Cancela los temporizadores del fallback.
     timeoutIds.forEach((id) => clearTimeout(id));
     timeoutIds.clear();
     intervalIds.forEach((id) => clearInterval(id));
     intervalIds.clear();
 
-    // Cancelar las notificaciones nativas pendientes, si estan disponibles
+    // Cancela las notificaciones nativas cuando están disponibles.
     if (Notifications && Platform.OS !== 'web') {
       try {
         await Notifications.cancelAllScheduledNotificationsAsync();

@@ -1,5 +1,4 @@
-// Almacenamiento seguro del token de sesion.
-// En web usa localStorage porque expo-secure-store no existe en navegador.
+// Almacena el token de sesión en SecureStore y usa localStorage en web.
 
 import { Platform } from 'react-native';
 import * as SecureStore from 'expo-secure-store';

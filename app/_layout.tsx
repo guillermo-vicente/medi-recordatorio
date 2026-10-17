@@ -8,8 +8,7 @@ import { notificationService } from '../src/features/notifications/notificationS
 
 notificationService.setup();
 
-// Silenciar los warnings de Expo Go Android.
-// El servicio usa un fallback con Alert que sigue funcionando.
+// Silencia avisos de Expo Go Android cubiertos por el fallback con Alert.
 LogBox.ignoreLogs([
   'expo-notifications: Android Push notifications',
   'modulo no disponible',

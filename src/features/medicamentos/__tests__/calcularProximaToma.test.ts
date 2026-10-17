@@ -1,6 +1,6 @@
 import { calcularProximaToma, calcularProximaTomaDiaria } from '../calcularTomas';
 import type { Medicamento } from '../medicamentoService';
-// Helpers para armar fechas en tests
+// Crea fechas locales para los casos de prueba.
 function fechaLocal(
   year: number,
   month: number, 
@@ -12,9 +12,9 @@ function fechaLocal(
 }
 
 describe('calcularProximaTomaDiaria', () => {
-  // ──── Casos básicos ────────────────────────────────────────────
+  // --- Casos básicos ---
   it('devuelve el próximo horario si todavía no pasó hoy', () => {
-    const desde = fechaLocal(2026, 10, 12, 7, 30); // 07:30
+    const desde = fechaLocal(2026, 10, 12, 7, 30); // 07:30.
     const horarios = ['08:00', '14:00', '20:00'];
     const resultado = calcularProximaTomaDiaria(horarios, desde);
     expect(new Date(resultado).getHours()).toBe(8);
@@ -31,7 +31,7 @@ describe('calcularProximaTomaDiaria', () => {
     expect(new Date(resultado).getDate()).toBe(13); 
   });
 
-  // ──── Un solo horario ─────────────────────────────────────────
+  // --- Un solo horario ---
   it('funciona con un solo horario', () => {
     const desde = fechaLocal(2026, 10, 12, 6, 0); 
     const resultado = calcularProximaTomaDiaria(['09:00'], desde);
@@ -39,7 +39,7 @@ describe('calcularProximaTomaDiaria', () => {
     expect(new Date(resultado).getDate()).toBe(12);
   });
 
-  // ──── Orden y desorden ────────────────────────────────────────
+  // --- Orden y desorden ---
   it('ordena horarios desordenados antes de calcular', () => {
     const desde = fechaLocal(2026, 10, 12, 7, 0);
     const horarios = ['20:00', '08:00', '14:00']; 
@@ -47,7 +47,7 @@ describe('calcularProximaTomaDiaria', () => {
     expect(new Date(resultado).getHours()).toBe(8); 
   });
 
-  // ──── Validación de formatos ──────────────────────────────────
+  // --- Validación de formatos ---
   it('ignora horarios con formato inválido', () => {
     const desde = fechaLocal(2026, 10, 12, 7, 0);
     const horarios = ['08:00', '25:00', 'abc', '14:00'];
@@ -74,7 +74,7 @@ describe('calcularProximaTomaDiaria', () => {
     expect(resultado).toBe(desde);
   });
 
-  // ──── Minuto exacto ───────────────────────────────────────────
+  // --- Minuto exacto ---
   it('si el horario es exactamente el minuto actual, pasa al siguiente', () => {
     const desde = fechaLocal(2026, 10, 12, 8, 0); 
     const horarios = ['08:00', '14:00'];
@@ -82,7 +82,7 @@ describe('calcularProximaTomaDiaria', () => {
     expect(new Date(resultado).getHours()).toBe(14); 
   });
 
-  // ──── Cambio de día ──────────────────────────────────────────
+  // --- Cambio de día ---
   it('cruza medianoche correctamente', () => {
     const desde = fechaLocal(2026, 10, 12, 23, 50); 
     const resultado = calcularProximaTomaDiaria(['00:30'], desde);
@@ -102,7 +102,7 @@ describe('calcularProximaTomaDiaria', () => {
 });
 
 describe('calcularProximaToma (intervalo)', () => {
-  // Helper para armar un Medicamento mínimo
+  // Crea un medicamento mínimo y permite sobrescribir sus datos.
   function medicamento(overrides: Partial<Medicamento> = {}): Medicamento {
     return {
       id: 'test-1',
@@ -140,7 +140,7 @@ describe('calcularProximaToma (intervalo)', () => {
       proximaToma: inicio,
     });
     const resultado = calcularProximaToma(item, ahora);
-    // Próximo a las 08:00 del día siguiente
+    // La próxima toma corresponde a las 08:00 del día siguiente.
     expect(new Date(resultado).getDate()).toBe(13);
     expect(new Date(resultado).getHours()).toBe(8);
   });
@@ -162,7 +162,7 @@ describe('calcularProximaToma (intervalo)', () => {
       frecuenciaHoras: 6,
       inicioHorario: inicio,
     });
-    // Múltiplos: 06:00, 12:00, 18:00...
+    // Los múltiplos siguientes son 06:00, 12:00 y 18:00.
     const resultado = calcularProximaToma(item, ahora);
     expect(new Date(resultado).getHours()).toBe(12);
   });

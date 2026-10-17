@@ -1,6 +1,6 @@
-// Servicio de medios: permisos, captura, persistencia y compartir.
-// Usa expo-image-picker para cámara y galería (más estable en Expo Go Android).
-// Guarda los archivos en documentDirectory para que persistan entre sesiones.
+// Gestiona permisos, captura, selección, persistencia y uso compartido de imágenes.
+// Expo ImagePicker ofrece el flujo de cámara y galería compatible con Expo Go Android.
+// Las imágenes se guardan en documentDirectory para conservarlas entre sesiones.
 
 import { Platform } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
@@ -35,7 +35,7 @@ async function persistImage(tempUri: string): Promise<string> {
 }
 
 export const mediaService = {
-  // ─── Permisos ──────────────────────────────────────────────────────────
+  // --- Permisos ---
   async requestCameraPermission(): Promise<boolean> {
     if (Platform.OS === 'web') return true;
     const { status } = await ImagePicker.requestCameraPermissionsAsync();
@@ -49,12 +49,11 @@ export const mediaService = {
   },
 
   async requestSavePermission(): Promise<boolean> {
-    // expo-media-library no está disponible en Expo Go SDK 57.
-    // Requiere development build.
+    // expo-media-library no está disponible en Expo Go SDK 57; requiere un development build.
     return false;
   },
 
-  // ─── Captura ───────────────────────────────────────────────────────────
+  // --- Captura ---
   async takePhoto(aspect: [number, number] = [1, 1]): Promise<PickedImage | null> {
     const allowed = await this.requestCameraPermission();
     if (!allowed) throw new Error('Permití el acceso a la cámara en los ajustes para tomar una foto.');
@@ -125,7 +124,7 @@ export const mediaService = {
     return persisted;
   },
 
-  // ─── Borrar ────────────────────────────────────────────────────────────
+  // --- Eliminación ---
   async deleteImage(uri?: string): Promise<void> {
     if (!uri || Platform.OS === 'web') return;
     if (!uri.startsWith(FileSystem.documentDirectory ?? '')) return;
@@ -136,7 +135,7 @@ export const mediaService = {
     }
   },
 
-  // ─── Compartir / Guardar ───────────────────────────────────────────────
+  // --- Compartir y guardar ---
   async shareImage(uri: string): Promise<boolean> {
     try {
       if (!(await Sharing.isAvailableAsync())) return false;
@@ -149,8 +148,7 @@ export const mediaService = {
   },
 
   async saveToGallery(_uri: string): Promise<boolean> {
-    // expo-media-library no está disponible en Expo Go SDK 57.
-    // Requiere development build.
+    // expo-media-library no está disponible en Expo Go SDK 57; requiere un development build.
     console.warn('[mediaService] saveToGallery no disponible en Expo Go');
     return false;
   },

@@ -1,4 +1,4 @@
-// Dialogs cross-platform. Alert.alert con botones no funciona en web.
+// Centraliza los diálogos nativos y sus alternativas compatibles con web.
 
 import { Alert, Platform } from 'react-native';
 

@@ -1,4 +1,4 @@
-// Constantes de la app: estados, frecuencias y claves de storage.
+// Reúne los estados, frecuencias y claves de almacenamiento de la app.
 
 export const APP_NAME = 'MediRecordatorio';
 
@@ -26,7 +26,7 @@ export const ESTADOS_TOMA = {
 
 export type EstadoToma = (typeof ESTADOS_TOMA)[keyof typeof ESTADOS_TOMA]['key'];
 
-// --- Frecuencias de medicacion ---
+// --- Frecuencias de medicación ---
 export const FRECUENCIAS = [
   { label: 'Cada 4 horas', horas: 4 },
   { label: 'Cada 6 horas', horas: 6 },

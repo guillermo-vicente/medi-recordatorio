@@ -28,7 +28,7 @@ export function useMedicamentos(): UseMedicamentosResult {
 
   const load = useCallback(
     async (mode: 'initial' | 'refresh' | 'silent' = 'initial') => {
-      // Si no hay usuario logueado, no hay nada que cargar
+      // Sin una sesión activa, la lista de medicamentos queda vacía.
       if (!user?.email) {
         setMedicamentos([]);
         setIsLoading(false);
@@ -51,7 +51,8 @@ export function useMedicamentos(): UseMedicamentosResult {
         if (mode === 'refresh') setIsRefreshing(false);
       }
     },
-    [user?.email]   // <-- clave: recarga cuando cambia el usuario
+    // Recalcula la carga cuando cambia la cuenta activa.
+    [user?.email]
   );
 
   useEffect(() => {

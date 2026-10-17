@@ -78,8 +78,7 @@ export default function NuevoMedicamentoScreen() {
   useFocusEffect(useCallback(() => { void reloadPersonas(); }, [reloadPersonas]));
 
   useEffect(() => {
-    // Cargar los datos del medicamento solo una vez por id.
-    // Sin esto, cada vez que "medicamentos" cambia el efecto vuelve a correr y sobreescribe
+    // Carga cada medicamento una sola vez para evitar que una recarga sobrescriba la edición.
     if (initialLoadDone.current === id) return;
     const item = medicamentos.find((med) => med.id === id);
     if (!item) return;

@@ -1,5 +1,4 @@
-// Funciones puras para calcular la proxima toma.
-// Sin dependencias de storage ni de React Native, para que sean fáciles de testear.
+// Calcula la próxima toma sin depender del almacenamiento ni de React Native.
 
 import type { Medicamento } from './medicamentoService';
 

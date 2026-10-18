@@ -73,7 +73,13 @@ npx tsc --noEmit
 npm test
 ```
 
-Las pruebas cubren validaciones de formularios, cálculo de próximas tomas y el componente `EmptyState`. El resultado mostrado por Jest corresponde a la versión instalada en ese momento; no se fija una cantidad de suites o casos en este README.
+Las pruebas cubren validaciones de formularios, cálculo de próximas tomas y el componente `EmptyState`.
+
+Resultado de la ejecución de Jest: 3 suites y 34 pruebas aprobadas.
+
+![Resultado de npm test](docs/test-result.svg)
+
+La [captura original](docs/test.png) también queda guardada en `docs/`.
 
 ---
 
@@ -96,7 +102,6 @@ Las pruebas cubren validaciones de formularios, cálculo de próximas tomas y el
 - La autenticación es demostrativa: no existe un servidor y el token es simulado. Las contraseñas se guardan sin cifrar en AsyncStorage; en web el token usa `localStorage`. No usar datos reales de salud con este prototipo.
 - Si el permiso de notificaciones se deniega, el plan se guarda pero no se programan avisos. El fallback de Expo Go usa temporizadores de la app y no es fiable si se cierra la app; las notificaciones repetidas requieren soporte nativo.
 - El momento de comida y las observaciones son datos ingresados por el usuario a partir de sus indicaciones; la app no recomienda ni valida instrucciones médicas.
-
 
 ### Autenticación local de demostración
 

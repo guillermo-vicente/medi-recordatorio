@@ -1,0 +1,39 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="490" viewBox="0 0 1200 490" role="img" aria-labelledby="title description">
+  <title id="title">Resultado de npm test</title>
+  <desc id="description">Jest aprobó 3 suites y 34 pruebas, sin snapshots. Tiempo total: 9.798 segundos.</desc>
+  <rect width="1200" height="490" rx="16" fill="#111315" />
+  <g font-family="Consolas, 'Courier New', monospace" font-size="20">
+    <text x="28" y="48" fill="#d1d5db">&gt; app-medicamentos@0.1.0 test</text>
+    <text x="28" y="82" fill="#d1d5db">&gt; jest</text>
+
+    <rect x="24" y="112" width="78" height="28" rx="3" fill="#00c987" />
+    <text x="34" y="133" fill="#07130f" font-weight="700">PASS</text>
+    <text x="118" y="133" fill="#aeb7c2">src/features/medicamentos/__tests__/calcularProximaToma.test.ts</text>
+
+    <rect x="24" y="148" width="78" height="28" rx="3" fill="#00c987" />
+    <text x="34" y="169" fill="#07130f" font-weight="700">PASS</text>
+    <text x="118" y="169" fill="#aeb7c2">src/utils/__tests__/validators.test.ts</text>
+
+    <rect x="24" y="184" width="78" height="28" rx="3" fill="#00c987" />
+    <text x="34" y="205" fill="#07130f" font-weight="700">PASS</text>
+    <text x="118" y="205" fill="#aeb7c2">src/components/ui/__tests__/EmptyState.test.tsx</text>
+    <rect x="786" y="184" width="92" height="28" rx="3" fill="#8e2e2e" />
+    <text x="796" y="205" fill="#ffd8d8">6.963 s</text>
+
+    <text x="28" y="263" fill="#d1d5db">Test Suites:</text>
+    <text x="174" y="263" fill="#00e6a0" font-weight="700">3 passed</text>
+    <text x="285" y="263" fill="#d1d5db">, 3 total</text>
+
+    <text x="28" y="299" fill="#d1d5db">Tests:</text>
+    <text x="174" y="299" fill="#00e6a0" font-weight="700">34 passed</text>
+    <text x="298" y="299" fill="#d1d5db">, 34 total</text>
+
+    <text x="28" y="335" fill="#d1d5db">Snapshots:</text>
+    <text x="174" y="335" fill="#00e6a0" font-weight="700">0 total</text>
+
+    <text x="28" y="371" fill="#d1d5db">Time:</text>
+    <text x="174" y="371" fill="#00e6a0" font-weight="700">9.798 s</text>
+
+    <text x="28" y="423" fill="#8d969f">Ran all test suites.</text>
+  </g>
+</svg>

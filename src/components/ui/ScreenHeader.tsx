@@ -1,4 +1,5 @@
-import { Image, StyleSheet, Text, View } from 'react-native';
+import { Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import type { StyleProp, ViewStyle } from 'react-native';
 import { useTheme } from '../../theme/useTheme';
 
@@ -6,10 +7,11 @@ interface Props {
   eyebrow?: string;
   title: string;
   avatarUri?: string;
+  onAvatarPress?: () => void;
   style?: StyleProp<ViewStyle>;
 }
 
-export function ScreenHeader({ eyebrow = 'MEDIRECORDATORIO', title, avatarUri, style }: Props) {
+export function ScreenHeader({ eyebrow = 'MEDIRECORDATORIO', title, avatarUri, onAvatarPress, style }: Props) {
   const theme = useTheme();
 
   return (
@@ -19,7 +21,19 @@ export function ScreenHeader({ eyebrow = 'MEDIRECORDATORIO', title, avatarUri, s
         <Text style={styles.title} accessibilityRole="header" numberOfLines={1}>
           {title}
         </Text>
-        {avatarUri ? <Image source={{ uri: avatarUri }} style={styles.avatar} /> : null}
+        {onAvatarPress ? (
+          <TouchableOpacity
+            style={styles.avatarButton}
+            onPress={onAvatarPress}
+            activeOpacity={0.75}
+            accessibilityRole="button"
+            accessibilityLabel={avatarUri ? 'Editar foto de perfil' : 'Agregar foto de perfil'}
+          >
+            {avatarUri
+              ? <Image source={{ uri: avatarUri }} style={styles.avatar} />
+              : <Ionicons name="person" size={26} color="#FFFFFF" />}
+          </TouchableOpacity>
+        ) : avatarUri ? <Image source={{ uri: avatarUri }} style={styles.avatar} /> : null}
       </View>
     </View>
   );
@@ -45,5 +59,6 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
   },
   titleRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  avatar: { width: 42, height: 42, borderRadius: 21, borderWidth: 2, borderColor: 'rgba(255,255,255,0.7)' },
+  avatar: { width: 52, height: 52, borderRadius: 26, borderWidth: 2, borderColor: 'rgba(255,255,255,0.7)' },
+  avatarButton: { width: 52, height: 52, marginRight: 4, borderRadius: 26, borderWidth: 2, borderColor: 'rgba(255,255,255,0.7)', backgroundColor: 'rgba(255,255,255,0.18)', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', transform: [{ translateY: -3 }] },
 });

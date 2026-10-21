@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import type { ComponentProps } from 'react';
 import {
     FlatList,
+    Alert,
     Image,
     Modal,
     Pressable,
@@ -28,6 +29,8 @@ import { showConfirm } from '../../src/utils/dialogs';
 import { usePersonas } from '../../src/features/personas/usePersonas';
 import { getOwnPersonaId } from '../../src/features/personas/personaService';
 import { calcularProximaToma } from '../../src/features/medicamentos/medicamentoService';
+import { mediaService } from '../../src/services/mediaService';
+import { locationService } from '../../src/services/locationService';
 
 function getEstadoMeta(estado: Medicamento['estado']) {
     if (estado === ESTADOS_TOMA.tomado.key) return ESTADOS_TOMA.tomado;
@@ -53,7 +56,7 @@ function getHorarioResumen(item: Medicamento): string {
 }
 
 export default function HomeScreen() {
-    const { user } = useAuth();
+    const { user, updateAvatar } = useAuth();
     const theme = useTheme();
     const {
         medicamentos,
@@ -71,8 +74,63 @@ export default function HomeScreen() {
     const [accionesMedicamento, setAccionesMedicamento] = useState<Medicamento | null>(null);
     const [fotoAmpliada, setFotoAmpliada] = useState<Medicamento | null>(null);
     const [selectorPersonasVisible, setSelectorPersonasVisible] = useState(false);
+    const [avatarBusy, setAvatarBusy] = useState(false);
     const { personaId: personaIdParam } = useLocalSearchParams<{ personaId?: string }>();
     const router = useRouter();
+
+    const changeAvatar = async (source: 'camera' | 'gallery') => {
+        if (avatarBusy) return;
+        setAvatarBusy(true);
+        let newAvatarUri: string | undefined;
+        try {
+            const image = source === 'camera'
+                ? await mediaService.takePhoto()
+                : await mediaService.pickImage();
+            if (!image) return;
+
+            newAvatarUri = image.uri;
+            const previousAvatarUri = user?.avatarUri;
+            await updateAvatar(newAvatarUri);
+            if (previousAvatarUri && previousAvatarUri !== newAvatarUri) {
+                await mediaService.deleteImage(previousAvatarUri);
+            }
+        } catch (error) {
+            if (newAvatarUri) await mediaService.deleteImage(newAvatarUri);
+            Alert.alert(
+                source === 'camera' ? 'No se pudo abrir la cámara' : 'No se pudo abrir la galería',
+                error instanceof Error ? error.message : 'Intentá nuevamente.'
+            );
+        } finally {
+            setAvatarBusy(false);
+        }
+    };
+
+    const removeAvatar = async () => {
+        if (!user?.avatarUri || avatarBusy) return;
+        const previousAvatarUri = user.avatarUri;
+        setAvatarBusy(true);
+        try {
+            await updateAvatar(undefined);
+            await mediaService.deleteImage(previousAvatarUri);
+        } catch (error) {
+            Alert.alert('No se pudo quitar la foto', error instanceof Error ? error.message : 'Intentá nuevamente.');
+        } finally {
+            setAvatarBusy(false);
+        }
+    };
+
+    const showAvatarOptions = () => {
+        if (avatarBusy) return;
+        const options = [
+            { text: 'Tomar una foto', onPress: () => void changeAvatar('camera') },
+            { text: 'Elegir de la galería', onPress: () => void changeAvatar('gallery') },
+        ];
+        if (user?.avatarUri) options.push({ text: 'Quitar foto', onPress: () => void removeAvatar() });
+        Alert.alert('Foto de perfil', 'Elegí de dónde querés obtener la imagen.', [
+            ...options.map((option) => ({ ...option, style: 'default' as const })),
+            { text: 'Cancelar', style: 'cancel' },
+        ]);
+    };
 
     useEffect(() => {
         if (!personas.length) return;
@@ -113,7 +171,17 @@ export default function HomeScreen() {
             '¿Registrar esta toma como realizada?',
         ].filter(Boolean).join('\n');
         if (await showConfirm({ title: item.nombre, message: details, confirmText: 'Marcar tomada', cancelText: 'Cancelar' })) {
-            await markAsTaken(item.id);
+            let ubicacion: string | undefined;
+            try {
+                const currentLocation = await locationService.getCurrentLocation();
+                if (currentLocation) {
+                    ubicacion = currentLocation.address
+                        || `${currentLocation.latitude}, ${currentLocation.longitude}`;
+                }
+            } catch {
+                // La toma se registra aunque el usuario no otorgue permiso de ubicación.
+            }
+            await markAsTaken(item.id, ubicacion);
         }
     }, [markAsTaken]);
 
@@ -311,7 +379,12 @@ export default function HomeScreen() {
             style={[styles.container, { backgroundColor: theme.colors.bg }]}
             edges={['top']}
         >
-            <ScreenHeader title={`Hola, ${user?.name ?? 'Usuario'}`} avatarUri={user?.avatarUri} style={styles.headerFrame} />
+            <ScreenHeader
+                title={`Hola, ${user?.name ?? 'Usuario'}`}
+                avatarUri={user?.avatarUri}
+                onAvatarPress={showAvatarOptions}
+                style={styles.headerFrame}
+            />
 
             <View style={styles.peopleSelector}>
                 <View style={styles.peopleSelectorHeader}>

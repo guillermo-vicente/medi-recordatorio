@@ -18,7 +18,7 @@ export interface Medicamento {
   indicaciones?: string;
   notificationId?: string;
   ultimaToma?: number;
-  historialTomas?: { fecha: number; estado: 'tomado' | 'omitido' }[];
+  historialTomas?: { fecha: number; estado: 'tomado' | 'omitido'; ubicacion?: string }[];
   estado: 'pendiente' | 'tomado' | 'omitido';
   createdAt: number;
   userEmail: string;
@@ -114,7 +114,8 @@ export const medicamentoService = {
   async recordDose(
     userEmail: string,
     id: string,
-    estado: 'tomado' | 'omitido'
+    estado: 'tomado' | 'omitido',
+    ubicacion?: string
   ): Promise<Medicamento | null> {
     const item = await medicamentoService.getById(userEmail, id);
     if (!item) return null;
@@ -122,7 +123,7 @@ export const medicamentoService = {
     const proximaToma = calcularProximaToma(item, ahora);
     const historialTomas = [
       ...(item.historialTomas ?? []),
-      { fecha: ahora, estado },
+      { fecha: ahora, estado, ...(ubicacion ? { ubicacion } : {}) },
     ].slice(-100);
     const updated: Medicamento = {
       ...item,

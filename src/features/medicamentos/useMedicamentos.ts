@@ -15,7 +15,7 @@ export interface UseMedicamentosResult {
   ) => Promise<Medicamento>;
   remove: (id: string) => Promise<void>;
   update: (id: string, changes: Partial<Medicamento>) => Promise<void>;
-  markAsTaken: (id: string) => Promise<void>;
+  markAsTaken: (id: string, ubicacion?: string) => Promise<void>;
   markAsMissed: (id: string) => Promise<void>;
 }
 
@@ -100,11 +100,11 @@ export function useMedicamentos(): UseMedicamentosResult {
   );
 
   const recordDose = useCallback(
-    async (id: string, estado: 'tomado' | 'omitido') => {
+    async (id: string, estado: 'tomado' | 'omitido', ubicacion?: string) => {
       if (!user?.email) throw new Error('Usuario no autenticado');
       const item = await medicamentoService.getById(user.email, id);
       if (!item) return;
-      const next = await medicamentoService.recordDose(user.email, id, estado);
+      const next = await medicamentoService.recordDose(user.email, id, estado, ubicacion);
       if (!next) return;
       await reloadSilently();
     },
@@ -112,7 +112,7 @@ export function useMedicamentos(): UseMedicamentosResult {
   );
 
   const markAsTaken = useCallback(
-    async (id: string) => recordDose(id, 'tomado'),
+    async (id: string, ubicacion?: string) => recordDose(id, 'tomado', ubicacion),
     [recordDose]
   );
 

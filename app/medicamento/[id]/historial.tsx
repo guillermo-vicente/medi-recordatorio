@@ -10,7 +10,7 @@ import { useMedicamentos } from '../../../src/features/medicamentos/useMedicamen
 import { usePersonas } from '../../../src/features/personas/usePersonas';
 import { useTheme } from '../../../src/theme/useTheme';
 
-type TomaHistorial = { fecha: number; estado: 'tomado' | 'omitido' };
+type TomaHistorial = { fecha: number; estado: 'tomado' | 'omitido'; ubicacion?: string };
 type HistorialSection = {
   key: string;
   title: string;
@@ -189,6 +189,12 @@ export default function HistorialMedicamentoScreen() {
                 </View>
                 <View style={styles.entryContent}>
                   <Text style={[styles.entryTitle, { color }]}>{taken ? 'Realizada' : 'Omitida'}</Text>
+                  {item.ubicacion ? (
+                    <View style={styles.location}>
+                      <Ionicons name="location-outline" size={14} color={theme.colors.subtext} />
+                      <Text style={[styles.locationText, { color: theme.colors.subtext }]}>{item.ubicacion}</Text>
+                    </View>
+                  ) : null}
                 </View>
                 <Text style={[styles.entryTime, { color: theme.colors.subtext }]}>{time}</Text>
               </View>
@@ -217,5 +223,7 @@ const styles = StyleSheet.create({
   entryIcon: { width: 34, height: 34, borderRadius: 11, alignItems: 'center', justifyContent: 'center' },
   entryContent: { flex: 1 },
   entryTitle: { fontSize: 15, fontWeight: '700' },
+  location: { flexDirection: 'row', alignItems: 'center', gap: 3, marginTop: 3 },
+  locationText: { flex: 1, fontSize: 12 },
   entryTime: { fontSize: 15, fontWeight: '600', fontVariant: ['tabular-nums'] },
 });

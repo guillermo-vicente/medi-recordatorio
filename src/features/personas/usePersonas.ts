@@ -29,17 +29,17 @@ export function usePersonas() {
 
   useEffect(() => { void reload(); }, [reload]);
 
-  const add = useCallback(async (nombre: string, relacion?: string, avatarUri?: string) => {
+  const add = useCallback(async (nombre: string, relacion?: string, avatarUri?: string,  emergencyContact?: { name: string; phone?: string }) => {
     if (!user?.email) throw new Error('Usuario no autenticado');
     if (!nombre.trim()) throw new Error('El nombre es obligatorio.');
-    const created = await personaService.add(user.email, nombre, relacion, avatarUri);
+    const created = await personaService.add(user.email, nombre, relacion, avatarUri, emergencyContact);
     await reload();
     return created;
   }, [user?.email, reload]);
 
-  const update = useCallback(async (persona: Persona, nombre: string, relacion?: string) => {
+  const update = useCallback(async (persona: Persona, nombre: string, relacion?: string, emergencyContact?: Persona['emergencyContact']) => {
     if (!user?.email) throw new Error('Usuario no autenticado');
-    await personaService.update(user.email, persona.id, { nombre, relacion });
+    await personaService.update(user.email, persona.id, { nombre, relacion, emergencyContact });
     await reload();
   }, [user?.email, reload]);
 

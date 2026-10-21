@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { CameraView, useCameraPermissions, type BarcodeScanningResult } from 'expo-camera';
 import {
   KeyboardAvoidingView,
+  Modal,
   Platform,
   ScrollView,
   StyleSheet,
@@ -70,6 +72,32 @@ export default function NuevoMedicamentoScreen() {
   const fotoOriginal = useRef<string | undefined>(undefined);
   const fotosPendientes = useRef(new Set<string>());
   const [fotoUri, setFotoUri] = useState<string | undefined>();
+  const [scannerVisible, setScannerVisible] = useState(false);
+  const [cameraPermission, requestCameraPermission] = useCameraPermissions();
+  const barcodeHandled = useRef(false);
+
+  const handleOpenScanner = async () => {
+    const permission = cameraPermission?.granted
+      ? cameraPermission
+      : await requestCameraPermission();
+    if (!permission.granted) {
+      showAlert('Permiso de cámara', 'Habilitá el acceso a la cámara para escanear un código QR.');
+      return;
+    }
+    barcodeHandled.current = false;
+    setScannerVisible(true);
+  };
+
+  const handleBarcodeScanned = ({ data }: BarcodeScanningResult) => {
+    if (barcodeHandled.current) return;
+    const [scannedNombre, scannedDosis, ...extra] = data.split('|');
+    if (extra.length || !scannedNombre?.trim() || !scannedDosis?.trim()) return;
+
+    barcodeHandled.current = true;
+    setNombre(scannedNombre.trim());
+    setDosis(scannedDosis.trim());
+    setScannerVisible(false);
+  };
 
   useEffect(() => () => {
     fotosPendientes.current.forEach((uri) => { void mediaService.deleteImage(uri); });
@@ -216,9 +244,19 @@ export default function NuevoMedicamentoScreen() {
           </Text>
 
           <View style={[styles.formCard, { backgroundColor: theme.colors.card, borderColor: theme.colors.border }]}>
-            <Text style={[styles.label, { color: theme.colors.subtext }]}>
-              Nombre
-            </Text>
+            <View style={styles.nameFieldHeader}>
+              <Text style={[styles.label, styles.nameLabel, { color: theme.colors.subtext }]}>Nombre</Text>
+              <TouchableOpacity
+                style={[styles.scanButton, { borderColor: theme.colors.primary }]}
+                onPress={handleOpenScanner}
+                disabled={submitting}
+                accessibilityRole="button"
+                accessibilityLabel="Escanear código QR para completar nombre y dosis"
+              >
+                <Ionicons name="qr-code-outline" size={17} color={theme.colors.primary} />
+                <Text style={[styles.scanButtonText, { color: theme.colors.primary }]}>Escanear QR</Text>
+              </TouchableOpacity>
+            </View>
             <View style={[styles.inputWrapper, { backgroundColor: theme.colors.bg, borderColor: theme.colors.border }]}>
               <Ionicons
                 name="medical-outline"
@@ -475,6 +513,31 @@ export default function NuevoMedicamentoScreen() {
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
+      <Modal
+        visible={scannerVisible}
+        animationType="slide"
+        onRequestClose={() => setScannerVisible(false)}
+      >
+        <View style={styles.scannerContainer}>
+          <CameraView
+            style={styles.camera}
+            barcodeScannerSettings={{ barcodeTypes: ['qr'] }}
+            onBarcodeScanned={handleBarcodeScanned}
+          />
+          <View style={styles.scannerHeader}>
+            <Text style={styles.scannerTitle}>Escanear código QR</Text>
+            <TouchableOpacity
+              style={styles.closeScannerButton}
+              onPress={() => setScannerVisible(false)}
+              accessibilityRole="button"
+              accessibilityLabel="Cerrar escáner"
+            >
+              <Ionicons name="close" size={24} color="#fff" />
+            </TouchableOpacity>
+          </View>
+          <Text style={styles.scannerHint}>Enfocá un QR con el formato Nombre|Dosis</Text>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -504,6 +567,16 @@ const styles = StyleSheet.create({
   },
   inputIcon: { marginRight: 12 },
   input: { flex: 1, fontSize: 15 },
+  nameFieldHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 8 },
+  nameLabel: { marginTop: 0 },
+  scanButton: { minHeight: 38, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, borderWidth: 1, borderRadius: 10, paddingHorizontal: 10 },
+  scanButtonText: { fontSize: 13, fontWeight: '700' },
+  scannerContainer: { flex: 1, backgroundColor: '#000', justifyContent: 'center' },
+  camera: { ...StyleSheet.absoluteFill },
+  scannerHeader: { position: 'absolute', top: 56, left: 20, right: 20, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  scannerTitle: { color: '#fff', fontSize: 20, fontWeight: '700' },
+  closeScannerButton: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center', borderRadius: 22, backgroundColor: 'rgba(0,0,0,0.55)' },
+  scannerHint: { position: 'absolute', bottom: 70, alignSelf: 'center', color: '#fff', fontSize: 15, fontWeight: '600', backgroundColor: 'rgba(0,0,0,0.55)', paddingHorizontal: 14, paddingVertical: 10, borderRadius: 12 },
   chipsRow: {
     flexDirection: 'row',
     flexWrap: 'wrap',

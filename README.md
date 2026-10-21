@@ -90,9 +90,12 @@ La [captura original](docs/test.png) también queda guardada en `docs/`.
 - Cada cuenta tiene una ficha propia y puede crear fichas locales para otras personas. Los medicamentos se asignan a una ficha y Home permite cambiar entre ellas.
 - Los medicamentos admiten horarios por intervalo o por horas específicas del día, indicación opcional sobre comidas, observaciones y foto de referencia.
 - Se pueden registrar tomas realizadas u omitidas, consultar el historial y ver el próximo aviso.
+- Las tomas realizadas pueden guardar la dirección o las coordenadas obtenidas desde la ubicación del dispositivo; el historial muestra el lugar cuando está disponible.
 - Las notificaciones locales se programan según el plan cuando la plataforma y los permisos lo permiten. El aviso opcional de prueba no cambia el horario del medicamento.
 - Las fotos de medicamentos y la imagen de perfil se eligen con cámara o galería, se procesan y se guardan en el dispositivo.
 - Las fichas de otras personas pueden incluir un avatar; Home muestra las imágenes disponibles junto al saludo del usuario, la persona activa y cada opción del selector.
+- Las fichas de seguimiento permiten agregar y editar nombre, vínculo y contacto de emergencia desde la agenda del dispositivo.
+- El alta de medicamentos puede completar nombre y dosis al escanear un código QR con el formato `Nombre|Dosis`.
 - Desde la lista de fichas de seguimiento se puede tocar un nombre para abrir en Home los medicamentos de esa persona o los propios.
 - La interfaz tiene tema claro/oscuro, formularios adaptados al teclado, componentes de carga/error/vacío y etiquetas de accesibilidad en acciones principales.
 
@@ -116,14 +119,17 @@ La [captura original](docs/test.png) también queda guardada en `docs/`.
 ### Medicamentos y fichas
 
 - Alta y edición de medicamentos con dosis, horarios por intervalo o por horas diarias, indicaciones y foto opcional.
+- Escaneo de códigos QR `Nombre|Dosis` para completar nombre y dosis durante el alta o edición.
 
 - Lista con estado de la toma (pendiente / tomada / omitida) y colores.
 
 - Registrar una toma como realizada, con confirmación.
+- Guardar la ubicación disponible al registrar una toma realizada y consultarla en el historial.
 
 - Eliminar medicamento con confirmación.
 
 - Fichas de personas en el mismo dispositivo; persistencia local aislada por cuenta.
+- Edición de fichas de seguimiento y selección de contacto de emergencia desde la agenda.
 
 ### Notificaciones locales
 
@@ -210,6 +216,8 @@ AppMedicamentos/
 │   │   ├── personas/             # Fichas locales
 │   │   └── notifications/        # Programación y sincronización de avisos
 │   ├── services/
+│   │   ├── contactService.ts     # Selección de contactos de emergencia
+│   │   ├── locationService.ts    # Ubicación y geocodificación inversa
 │   │   ├── mediaService.ts       # Procesamiento y persistencia de imágenes
 │   │   ├── storage.ts            # Wrapper de AsyncStorage
 │   │   └── secureStorage.ts      # Wrapper de SecureStore (mobile) / localStorage (web)
@@ -239,6 +247,9 @@ AppMedicamentos/
 | `@react-native-async-storage/async-storage` | `2.2.0` | Persistencia de datos locales |
 | `expo-secure-store` | `~57.0.4` | Almacenamiento seguro del token en móvil |
 | `expo-notifications` | `~57.0.21` | Notificaciones locales |
+| `expo-camera` | `~57.0.6` | Cámara y lectura de códigos QR |
+| `expo-location` | `~57.0.21` | Ubicación y dirección de las tomas |
+| `expo-contacts` | `~57.0.8` | Selección de contactos de emergencia |
 | `expo-image-picker` | `~57.0.20` | Cámara y selección desde galería |
 | `expo-image-manipulator` | `~57.0.21` | Compresión y procesamiento de imágenes |
 | `expo-file-system` | `~57.0.7` | Persistencia local de imágenes |

@@ -2,8 +2,8 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { CameraView, useCameraPermissions, type BarcodeScanningResult } from 'expo-camera';
 import {
   KeyboardAvoidingView,
-  Modal,
   Platform,
+  Modal,
   ScrollView,
   StyleSheet,
   Text,
@@ -72,14 +72,20 @@ export default function NuevoMedicamentoScreen() {
   const fotoOriginal = useRef<string | undefined>(undefined);
   const fotosPendientes = useRef(new Set<string>());
   const [fotoUri, setFotoUri] = useState<string | undefined>();
+
+  // Estados del escáner
   const [scannerVisible, setScannerVisible] = useState(false);
   const [cameraPermission, requestCameraPermission] = useCameraPermissions();
   const barcodeHandled = useRef(false);
+  const [scanTarget, setScanTarget] = useState<'nombre' | 'observaciones'>('nombre');
 
-  const handleOpenScanner = async () => {
+  const handleOpenScanner = async (target: 'nombre' | 'observaciones' = 'nombre') => {
+    setScanTarget(target); // Configuramos el objetivo del escaneo
+
     const permission = cameraPermission?.granted
       ? cameraPermission
       : await requestCameraPermission();
+
     if (!permission.granted) {
       showAlert('Permiso de cámara', 'Habilitá el acceso a la cámara para escanear un código QR.');
       return;
@@ -90,13 +96,25 @@ export default function NuevoMedicamentoScreen() {
 
   const handleBarcodeScanned = ({ data }: BarcodeScanningResult) => {
     if (barcodeHandled.current) return;
-    const [scannedNombre, scannedDosis, ...extra] = data.split('|');
-    if (extra.length || !scannedNombre?.trim() || !scannedDosis?.trim()) return;
 
     barcodeHandled.current = true;
-    setNombre(scannedNombre.trim());
-    setDosis(scannedDosis.trim());
     setScannerVisible(false);
+
+    // Lógica si estamos escaneando para Observaciones
+    if (scanTarget === 'observaciones') {
+      setObservaciones((prev) => prev ? `${prev}\n${data.trim()}` : data.trim());
+      return;
+    }
+
+    // Lógica si estamos escaneando para el Nombre
+    const parts = data.split('|');
+    if (parts.length >= 2) {
+      setNombre(parts[0].trim());
+      setDosis(parts[1].trim());
+    } else {
+      setNombre(data.trim());
+      showAlert('QR Escaneado', 'Se completó el nombre con el texto del QR. Por favor, ingresá la dosis manualmente.');
+    }
   };
 
   useEffect(() => () => {
@@ -106,7 +124,6 @@ export default function NuevoMedicamentoScreen() {
   useFocusEffect(useCallback(() => { void reloadPersonas(); }, [reloadPersonas]));
 
   useEffect(() => {
-    // Carga cada medicamento una sola vez para evitar que una recarga sobrescriba la edición.
     if (initialLoadDone.current === id) return;
     const item = medicamentos.find((med) => med.id === id);
     if (!item) return;
@@ -214,25 +231,10 @@ export default function NuevoMedicamentoScreen() {
   };
 
   return (
-    <SafeAreaView
-      style={[styles.container, { backgroundColor: theme.colors.bg }]}
-      edges={['top']}
-    >
-      <KeyboardAvoidingView
-        style={styles.keyboard}
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-      >
-        <ScrollView
-          contentContainerStyle={styles.scroll}
-          showsVerticalScrollIndicator={false}
-        >
-          <TouchableOpacity
-            style={styles.backBtn}
-            onPress={() => router.back()}
-            disabled={submitting}
-            accessibilityRole="button"
-            accessibilityLabel="Volver"
-          >
+    <SafeAreaView style={[styles.container, { backgroundColor: theme.colors.bg }]} edges={['top']}>
+      <KeyboardAvoidingView style={styles.keyboard} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+        <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
+          <TouchableOpacity style={styles.backBtn} onPress={() => router.back()} disabled={submitting} accessibilityRole="button" accessibilityLabel="Volver">
             <Ionicons name="arrow-back" size={24} color={theme.colors.text} />
           </TouchableOpacity>
 
@@ -248,7 +250,7 @@ export default function NuevoMedicamentoScreen() {
               <Text style={[styles.label, styles.nameLabel, { color: theme.colors.subtext }]}>Nombre</Text>
               <TouchableOpacity
                 style={[styles.scanButton, { borderColor: theme.colors.primary }]}
-                onPress={handleOpenScanner}
+                onPress={() => handleOpenScanner('nombre')}
                 disabled={submitting}
                 accessibilityRole="button"
                 accessibilityLabel="Escanear código QR para completar nombre y dosis"
@@ -257,13 +259,9 @@ export default function NuevoMedicamentoScreen() {
                 <Text style={[styles.scanButtonText, { color: theme.colors.primary }]}>Escanear QR</Text>
               </TouchableOpacity>
             </View>
+
             <View style={[styles.inputWrapper, { backgroundColor: theme.colors.bg, borderColor: theme.colors.border }]}>
-              <Ionicons
-                name="medical-outline"
-                size={20}
-                color={theme.colors.subtext}
-                style={styles.inputIcon}
-              />
+              <Ionicons name="medical-outline" size={20} color={theme.colors.subtext} style={styles.inputIcon} />
               <TextInput
                 style={[styles.input, { color: theme.colors.text }]}
                 placeholder="Ej: Ibuprofeno"
@@ -275,16 +273,9 @@ export default function NuevoMedicamentoScreen() {
               />
             </View>
 
-            <Text style={[styles.label, { color: theme.colors.subtext }]}>
-              Dosis
-            </Text>
+            <Text style={[styles.label, { color: theme.colors.subtext }]}>Dosis</Text>
             <View style={[styles.inputWrapper, { backgroundColor: theme.colors.bg, borderColor: theme.colors.border }]}>
-              <Ionicons
-                name="flask-outline"
-                size={20}
-                color={theme.colors.subtext}
-                style={styles.inputIcon}
-              />
+              <Ionicons name="flask-outline" size={20} color={theme.colors.subtext} style={styles.inputIcon} />
               <TextInput
                 style={[styles.input, { color: theme.colors.text }]}
                 placeholder="Ej: 400mg"
@@ -449,7 +440,22 @@ export default function NuevoMedicamentoScreen() {
                       );
                     })}
                   </View>
-                  <Text style={[styles.label, { color: theme.colors.subtext }]}>Observaciones</Text>
+
+                  {/* OBSERVACIONES CON ESCÁNER */}
+                  <View style={styles.obsLabelContainer}>
+                    <Text style={[styles.label, { marginTop: 0, color: theme.colors.subtext }]}>Observaciones</Text>
+                    <TouchableOpacity
+                      style={[styles.scanButton, { borderColor: theme.colors.primary, minHeight: 32 }]}
+                      onPress={() => handleOpenScanner('observaciones')}
+                      disabled={submitting}
+                      accessibilityRole="button"
+                      accessibilityLabel="Escanear QR para agregar a las observaciones"
+                    >
+                      <Ionicons name="qr-code-outline" size={15} color={theme.colors.primary} />
+                      <Text style={[styles.scanButtonText, { color: theme.colors.primary }]}>Escanear</Text>
+                    </TouchableOpacity>
+                  </View>
+
                   <TextInput
                     style={[styles.notesInput, { color: theme.colors.text, backgroundColor: theme.colors.bg, borderColor: theme.colors.border }]}
                     placeholder="Otros detalles a recordar."
@@ -483,22 +489,13 @@ export default function NuevoMedicamentoScreen() {
             {errors.length > 0 && (
               <View style={styles.errorContainer}>
                 {errors.map((err, i) => (
-                  <Text
-                    key={i}
-                    style={[styles.errorText, { color: theme.colors.danger }]}
-                  >
-                    {err}
-                  </Text>
+                  <Text key={i} style={[styles.errorText, { color: theme.colors.danger }]}>{err}</Text>
                 ))}
               </View>
             )}
 
             <TouchableOpacity
-              style={[
-                styles.saveBtn,
-                { backgroundColor: theme.colors.primary },
-                submitting && styles.disabled,
-              ]}
+              style={[styles.saveBtn, { backgroundColor: theme.colors.primary }, submitting && styles.disabled]}
               onPress={handleSave}
               activeOpacity={0.8}
               disabled={submitting}
@@ -513,14 +510,16 @@ export default function NuevoMedicamentoScreen() {
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
+
       <Modal
         visible={scannerVisible}
-        animationType="slide"
+        animationType="fade"
         onRequestClose={() => setScannerVisible(false)}
       >
         <View style={styles.scannerContainer}>
           <CameraView
             style={styles.camera}
+            facing="back"
             barcodeScannerSettings={{ barcodeTypes: ['qr'] }}
             onBarcodeScanned={handleBarcodeScanned}
           />
@@ -550,47 +549,29 @@ const styles = StyleSheet.create({
   title: { fontSize: 28, fontWeight: '800' },
   subtitle: { fontSize: 15, marginTop: 4, marginBottom: 24 },
   formCard: { borderRadius: 22, padding: 22, gap: 8, borderWidth: 1 },
-  label: {
-    fontSize: 13,
-    fontWeight: '700',
-    textTransform: 'uppercase',
-    letterSpacing: 1,
-    marginTop: 8,
-  },
-  inputWrapper: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    borderRadius: 14,
-    height: 54,
-    borderWidth: 1,
-    paddingHorizontal: 16,
-  },
+  label: { fontSize: 13, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 1, marginTop: 8 },
+  inputWrapper: { flexDirection: 'row', alignItems: 'center', borderRadius: 14, height: 54, borderWidth: 1, paddingHorizontal: 16 },
   inputIcon: { marginRight: 12 },
   input: { flex: 1, fontSize: 15 },
   nameFieldHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 8 },
   nameLabel: { marginTop: 0 },
   scanButton: { minHeight: 38, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, borderWidth: 1, borderRadius: 10, paddingHorizontal: 10 },
   scanButtonText: { fontSize: 13, fontWeight: '700' },
-  scannerContainer: { flex: 1, backgroundColor: '#000', justifyContent: 'center' },
-  camera: { ...StyleSheet.absoluteFill },
+  scannerContainer: { flex: 1, backgroundColor: '#000' },
+  camera: {
+    flex: 1,
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+  },
   scannerHeader: { position: 'absolute', top: 56, left: 20, right: 20, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   scannerTitle: { color: '#fff', fontSize: 20, fontWeight: '700' },
   closeScannerButton: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center', borderRadius: 22, backgroundColor: 'rgba(0,0,0,0.55)' },
   scannerHint: { position: 'absolute', bottom: 70, alignSelf: 'center', color: '#fff', fontSize: 15, fontWeight: '600', backgroundColor: 'rgba(0,0,0,0.55)', paddingHorizontal: 14, paddingVertical: 10, borderRadius: 12 },
-  chipsRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-    marginBottom: 8,
-  },
-  chip: {
-    minHeight: 44,
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    borderRadius: 10,
-    borderWidth: 1,
-    justifyContent: 'center',
-  },
+  chipsRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 8 },
+  chip: { minHeight: 44, paddingHorizontal: 14, paddingVertical: 8, borderRadius: 10, borderWidth: 1, justifyContent: 'center' },
   chipText: { fontSize: 15, fontWeight: '600' },
   notesInput: { minHeight: 96, borderWidth: 1, borderRadius: 14, padding: 14, fontSize: 16 },
   scheduleInput: { minHeight: 52 },
@@ -607,18 +588,10 @@ const styles = StyleSheet.create({
   optionalHeadingText: { flex: 1, gap: 4 },
   optionalTitle: { fontSize: 15, fontWeight: '700' },
   optionalContent: { paddingHorizontal: 14, paddingBottom: 14, gap: 8 },
+  obsLabelContainer: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 8 },
   errorContainer: { marginTop: 8 },
   errorText: { fontSize: 13, fontWeight: '500', marginBottom: 4 },
-  saveBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderRadius: 14,
-    height: 54,
-    marginTop: 1,
-    marginBottom: 15,
-    gap: 8,
-  },
+  saveBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', borderRadius: 14, height: 54, marginTop: 1, marginBottom: 15, gap: 8 },
   disabled: { opacity: 0.6 },
   saveBtnText: { fontSize: 16, fontWeight: '700' },
 });

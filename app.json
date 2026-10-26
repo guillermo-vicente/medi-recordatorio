@@ -1,5 +1,11 @@
 {
   "expo": {
+    "name": "MediRecordatorio",
+    "slug": "app-medicamentos",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "light",
+    "scheme": "medirecordatorio",
     "ios": {
       "supportsTablet": true,
       "infoPlist": {
@@ -48,7 +54,8 @@
         {
           "contactsPermission": "Esta app accede a tus contactos para asignar un contacto de emergencia a tus fichas."
         }
-      ]
+      ],
+      "expo-sharing"
     ]
   }
 }

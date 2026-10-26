@@ -26,7 +26,7 @@ De las 5 opciones propuestas en el parcial, elegí **Recordatorio de medicación
 
 ### Requisitos previos
 
-- **Node.js 18+** (recomendado 22)
+- **Node.js 22.13.0** (versión utilizada en el desarrollo)
 - **Expo Go** instalado en el celular (Android o iOS) — [Play Store](https://play.google.com/store/apps/details?id=host.exp.exponent) / [App Store](https://apps.apple.com/app/expo-go/id982107779)
 - Para conexión LAN, PC y celular en **la misma red WiFi**
 
@@ -75,7 +75,7 @@ npm test
 
 Las pruebas cubren validaciones de formularios, cálculo de próximas tomas y el componente `EmptyState`.
 
-Resultado de la ejecución de Jest: 3 suites y 34 pruebas aprobadas.
+"Resultado de la ejecución de Jest: 4 suites y 36 pruebas aprobadas."
 
 ![Resultado de npm test](docs/test-result.svg)
 
@@ -87,65 +87,71 @@ La [captura original](docs/test.png) también queda guardada en `docs/`.
 
 ### Funcionalidades actuales
 
-- Cada cuenta tiene una ficha propia y puede crear fichas locales para otras personas. Los medicamentos se asignan a una ficha y Home permite cambiar entre ellas.
-- Los medicamentos admiten horarios por intervalo o por horas específicas del día, indicación opcional sobre comidas, observaciones y foto de referencia.
-- Se pueden registrar tomas realizadas u omitidas, consultar el historial y ver el próximo aviso.
-- Las tomas realizadas pueden guardar la dirección o las coordenadas obtenidas desde la ubicación del dispositivo; el historial muestra el lugar cuando está disponible.
-- Las notificaciones locales se programan según el plan cuando la plataforma y los permisos lo permiten. El aviso opcional de prueba no cambia el horario del medicamento.
-- Las fotos de medicamentos y la imagen de perfil se eligen con cámara o galería, se procesan y se guardan en el dispositivo.
-- Las fichas de otras personas pueden incluir un avatar; Home muestra las imágenes disponibles junto al saludo del usuario, la persona activa y cada opción del selector.
-- Las fichas de seguimiento permiten agregar y editar nombre, vínculo y contacto de emergencia desde la agenda del dispositivo.
-- El alta de medicamentos puede completar nombre y dosis al escanear un código QR con el formato `Nombre|Dosis`.
-- Desde la lista de fichas de seguimiento se puede tocar un nombre para abrir en Home los medicamentos de esa persona o los propios.
-- La interfaz tiene tema claro/oscuro, formularios adaptados al teclado, componentes de carga/error/vacío y etiquetas de accesibilidad en acciones principales.
+- **Gestión de Fichas y Personas**: Cada cuenta tiene una ficha propia y permite crear fichas para otras personas (modo cuidador). Los medicamentos se asignan a una ficha y Home permite cambiar entre ellas.
+- **Medicamentos y Horarios**: Alta y edición con dosis, horarios por intervalo o diarios, foto de referencia, indicaciones sobre comidas y observaciones.
+- **Registro de Tomas con Ubicación**: Al registrar una toma como realizada, se solicita permiso de GPS y se guarda la dirección o coordenadas en el historial.
+- **Escáner de Códigos QR**: Uso de `expo-camera` para leer códigos QR (formato `Nombre|Dosis`) y autocompletar el alta de medicamentos, o adjuntar texto directo a las observaciones.
+- **Contacto de Emergencia**: Integración con `expo-contacts` para asociar un contacto de la agenda a cada ficha de persona, con opción de editar o quitar.
+- **Notificaciones Locales**: Programación de avisos según el plan, con fallback vía `Alert` para compatibilidad con Expo Go.
+- **Multimedia**: Captura y selección de imágenes con cámara/galería (`expo-image-picker`), procesadas y guardadas localmente.
+- **UI/UX**: Tema claro/oscuro, navegación fluida con Expo Router, componentes accesibles y formularios adaptados al teclado.
 
 ### Alcance y limitaciones del prototipo
 
-- Las cuentas y los medicamentos se guardan localmente. El modo cuidador funciona en la misma cuenta y dispositivo; todavía no hay perfiles de cuidador ni sincronización entre dispositivos.
-- La autenticación es demostrativa: no existe un servidor y el token es simulado. Las contraseñas se guardan sin cifrar en AsyncStorage; en web el token usa `localStorage`. No usar datos reales de salud con este prototipo.
-- Si el permiso de notificaciones se deniega, el plan se guarda pero no se programan avisos. El fallback de Expo Go usa temporizadores de la app y no es fiable si se cierra la app; las notificaciones repetidas requieren soporte nativo.
-- El momento de comida y las observaciones son datos ingresados por el usuario a partir de sus indicaciones; la app no recomienda ni valida instrucciones médicas.
+- Las cuentas y los medicamentos se guardan 100% offline en el dispositivo (AsyncStorage).
+- La autenticación es demostrativa: no hay servidor backend y el token es simulado.
+- **Limitación de Expo Go**: Las notificaciones push nativas y de fondo están deshabilitadas. El fallback usa temporizadores locales que no son fiables si se cierra la app. Las notificaciones nativas reales requieren un Development Build.
+- Si se deniega el permiso de ubicación, la toma se registra exitosamente sin el dato geográfico.
 
 ### Autenticación local de demostración
 
 - Registro con nombre, email y contraseña (validación de formato y coincidencia).
-
 - Login con validación de credenciales contra los usuarios guardados en el dispositivo.
-
 - Sesión persistente: en móvil el token se guarda en SecureStore (Keychain iOS / Keystore Android); en web usa `localStorage`.
-
 - Bloqueo de acceso: no se puede entrar sin loguearse.
 
 ### Medicamentos y fichas
 
 - Alta y edición de medicamentos con dosis, horarios por intervalo o por horas diarias, indicaciones y foto opcional.
 - Escaneo de códigos QR `Nombre|Dosis` para completar nombre y dosis durante el alta o edición.
-
 - Lista con estado de la toma (pendiente / tomada / omitida) y colores.
-
 - Registrar una toma como realizada, con confirmación.
 - Guardar la ubicación disponible al registrar una toma realizada y consultarla en el historial.
-
 - Eliminar medicamento con confirmación.
-
 - Fichas de personas en el mismo dispositivo; persistencia local aislada por cuenta.
 - Edición de fichas de seguimiento y selección de contacto de emergencia desde la agenda.
 
 ### Notificaciones locales
 
 - Se programa una notificación personalizada con el nombre del usuario y el medicamento al dar de alta.
-
 - Permisos solicitados al usuario en el primer uso.
-
 - Cancelación automática al cerrar sesión (evita alertas del usuario anterior).
 
 ### Tema claro / oscuro
 
 - Detecta automáticamente el tema del sistema operativo.
-
 - Toggle manual desde el Perfil.
-
 - Sincronización con React Native Paper.
+
+---
+
+## Notas técnicas
+
+### Navegación con Expo Router
+El proyecto usa expo-router, que es la capa oficial de navegación de Expo y está construida sobre React Navigation (@react-navigation/native-stack por debajo). Aporta file-based routing: cada archivo en app/ es una ruta automáticamente.
+
+### Notificaciones locales en Expo Go Android
+El proyecto usa expo-notifications con un fallback con Alert.alert cuando el módulo nativo no está disponible, manteniendo la funcionalidad del recordatorio en Expo Go. En iOS o en un development build la notificación nativa se dispara normalmente.
+
+### Aislamiento de datos por usuario
+Cada medicamento guarda el userEmail del usuario que lo creó. El servicio filtra por ese email, por lo que cada cuenta ve únicamente sus propios medicamentos.
+
+### Pruebas incluidas
+- **Funciones puras** (`validators.ts`): validan formato de email, longitud de contraseña y coincidencia de campos.
+- **Componente reutilizable** (`EmptyState.tsx`): verifica su renderizado y contenido.
+- **Cálculos de horarios** (`calcularTomas.ts`): cubren el cálculo de próximas tomas.
+- **Servicio de personas** (`personaService.ts`): cubre la inicialización de fichas y creación de perfiles usando mocks de AsyncStorage.
+- Ejecutar con: `npm test`.
 
 ---
 
@@ -184,15 +190,15 @@ En Perfil, tocá el avatar para tomar una foto, elegir una imagen de la galería
 ## Estructura del proyecto
 
 ```text
-AppMedicamentos/
+medi-recordatorio/
 ├── app/                          # Rutas (Expo Router, file-based)
 │   ├── _layout.tsx               # Stack raíz + Providers (SafeArea, Theme, Auth)
 │   ├── index.tsx                 # Login
 │   ├── register.tsx              # Registro
 │   ├── personas.tsx              # Administración de fichas de personas
 │   ├── medicamento/
-│   │   ├── nuevo.tsx             # Alta y edición de medicamentos
-│   │   └── [id]/historial.tsx    # Historial de tomas
+│   │   ├── nuevo.tsx             # Alta y edición de medicamentos (incluye Escáner QR)
+│   │   └── [id]/historial.tsx    # Historial de tomas (con ubicación)
 │   └── (tabs)/                   # Grupo de tabs
 │       ├── _layout.tsx           # Tab Navigator
 │       ├── home.tsx              # Lista de medicamentos
@@ -202,31 +208,30 @@ AppMedicamentos/
 │   ├── components/ui/            # Componentes presentacionales reutilizables
 │   │   ├── EmptyState.tsx
 │   │   ├── ErrorState.tsx
+│   │   ├── ImagePickerField.tsx
 │   │   ├── LoadingState.tsx
 │   │   ├── ScreenHeader.tsx
-│   │   ├── ImagePickerField.tsx
-│   │   └── __tests__/
-│   │       └── EmptyState.test.tsx
+│   │   └── __tests__/            # Pruebas de componentes (EmptyState)
 │   ├── config/
 │   │   └── constants.ts          # Estados, frecuencias, claves de storage
-│   ├── features/
+│   ├── features/                 # Lógica de dominio (negocio)
 │   │   ├── auth/                 # AuthContext + useAuth
 │   │   ├── medicamentos/         # Datos, horarios y estado de medicamentos
 │   │   │   └── __tests__/        # Pruebas de cálculos de horarios
 │   │   ├── personas/             # Fichas locales
+│   │   │   └── __tests__/        # Pruebas de personaService (mocks)
 │   │   └── notifications/        # Programación y sincronización de avisos
-│   ├── services/
+│   ├── services/                 # Servicios de infraestructura/hardware
 │   │   ├── contactService.ts     # Selección de contactos de emergencia
 │   │   ├── locationService.ts    # Ubicación y geocodificación inversa
 │   │   ├── mediaService.ts       # Procesamiento y persistencia de imágenes
-│   │   ├── storage.ts            # Wrapper de AsyncStorage
-│   │   └── secureStorage.ts      # Wrapper de SecureStore (mobile) / localStorage (web)
+│   │   ├── secureStorage.ts      # Wrapper de SecureStore (mobile) / localStorage (web)
+│   │   └── storage.ts            # Wrapper de AsyncStorage
 │   ├── theme/                    # Tema claro/oscuro
 │   └── utils/
-│       ├── validators.ts         # Funciones puras de validación
 │       ├── dialogs.ts            # Diálogos cross-platform
-│       └── __tests__/
-│           └── validators.test.ts
+│       ├── validators.ts         # Funciones puras de validación
+│       └── __tests__/            # Pruebas de validadores
 │
 ├── app.json                      # Configuración de Expo
 ├── package.json                  # Dependencias + scripts
@@ -270,23 +275,3 @@ Duración: 1:50.
 
 Muestra el flujo completo: login → alta de medicamento → notificación personalizada → marcar tomado → modo oscuro.
 
-## Notas técnicas
-
-### Navegación con Expo Router
-
-El proyecto usa expo-router, que es la capa oficial de navegación de Expo y está construida sobre React Navigation (@react-navigation/native-stack por debajo). Aporta file-based routing: cada archivo en app/ es una ruta automáticamente.
-
-### Notificaciones locales en Expo Go Android
-
-El proyecto usa expo-notifications con un fallback con Alert.alert cuando el módulo nativo no está disponible, manteniendo la funcionalidad del recordatorio en Expo Go. En iOS o en un development build la notificación nativa se dispara normalmente.
-
-### Aislamiento de datos por usuario
-
-Cada medicamento guarda el userEmail del usuario que lo creó. El servicio filtra por ese email, por lo que cada cuenta ve únicamente sus propios medicamentos.
-
-### Pruebas incluidas
-
-- **Funciones puras** (`validators.ts`): validan formato de email, longitud de contraseña y coincidencia de campos.
-- **Componente reutilizable** (`EmptyState.tsx`): verifica su renderizado y contenido.
-- **Cálculos de horarios** (`calcularTomas.ts`): cubren el cálculo de próximas tomas.
-- Ejecutar con: `npm test`.

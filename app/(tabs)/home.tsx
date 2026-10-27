@@ -30,9 +30,7 @@ import { usePersonas } from '../../src/features/personas/usePersonas';
 import { getOwnPersonaId } from '../../src/features/personas/personaService';
 import { calcularProximaToma } from '../../src/features/medicamentos/medicamentoService';
 import { mediaService } from '../../src/services/mediaService';
-
 import { locationService } from '../../src/services/locationService';
-
 
 function getEstadoMeta(estado: Medicamento['estado']) {
     if (estado === ESTADOS_TOMA.tomado.key) return ESTADOS_TOMA.tomado;
@@ -151,7 +149,6 @@ export default function HomeScreen() {
     const avatarPersonaActiva = personaActiva?.esPropia ? undefined : personaActiva?.avatarUri;
     const medicamentosPersona = medicamentos.filter((item) => item.personaId === personaActivaId);
 
-    // Recarga los medicamentos y las personas cada vez que Home recupera el foco.
     useFocusEffect(
         useCallback(() => {
             reloadSilently();
@@ -280,14 +277,17 @@ export default function HomeScreen() {
                                 style={[
                                     styles.actionButton,
                                     styles.primaryAction,
-                                    { backgroundColor: theme.colors.primary },
+                                    { backgroundColor: item.estado === 'tomado' ? theme.colors.success : theme.colors.primary },
                                 ]}
                                 onPress={() => handleMarkTaken(item)}
+                                disabled={item.estado === 'tomado'}
                                 accessibilityRole="button"
                                 accessibilityLabel={`Registrar toma realizada de ${item.nombre}`}
                             >
-                                <Ionicons name="checkmark-circle-outline" size={17} color={theme.colors.onPrimary} />
-                                <Text style={[styles.actionText, { color: theme.colors.onPrimary }]}>Registrar toma</Text>
+                                <Ionicons name={item.estado === 'tomado' ? "checkmark-done-circle" : "checkmark-circle-outline"} size={17} color={theme.colors.onPrimary} />
+                                <Text style={[styles.actionText, { color: theme.colors.onPrimary }]}>
+                                    {item.estado === 'tomado' ? 'Toma realizada' : 'Registrar toma'}
+                                </Text>
                             </TouchableOpacity>
                             <TouchableOpacity
                                 style={[
@@ -541,7 +541,12 @@ export default function HomeScreen() {
                         <Text style={[styles.sheetSubtitle, { color: theme.colors.subtext }]}>Otras acciones</Text>
                         {accionesMedicamento ? (
                             <>
-                                <SheetAction icon="close-circle-outline" label="Registrar como omitida" color={theme.colors.danger} onPress={() => { const item = accionesMedicamento; setAccionesMedicamento(null); void handleMarkMissed(item); }} />
+                                {accionesMedicamento.estado !== 'tomado' && (
+                                    <SheetAction icon="close-circle-outline" label="Registrar como omitida" color={theme.colors.danger} onPress={() => { const item = accionesMedicamento; setAccionesMedicamento(null); void handleMarkMissed(item); }} />
+                                )}
+                                {accionesMedicamento.estado === 'tomado' && (
+                                    <SheetAction icon="close-circle-outline" label="Deshacer toma realizada" color={theme.colors.danger} onPress={() => { const item = accionesMedicamento; setAccionesMedicamento(null); void handleMarkMissed(item); }} />
+                                )}
                                 <SheetAction icon="create-outline" label="Editar medicamento" color={theme.colors.primary} onPress={() => { const item = accionesMedicamento; setAccionesMedicamento(null); router.push({ pathname: '/medicamento/nuevo', params: { id: item.id } }); }} />
                                 <SheetAction icon="time-outline" label="Ver historial de tomas" color={theme.colors.primary} onPress={() => { const item = accionesMedicamento; setAccionesMedicamento(null); router.push({ pathname: '../medicamento/[id]/historial', params: { id: item.id } }); }} />
                                 <SheetAction icon="trash-outline" label="Eliminar medicamento" color={theme.colors.danger} onPress={() => { void handleRemove(accionesMedicamento); }} />

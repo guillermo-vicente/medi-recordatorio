@@ -16,29 +16,50 @@ export default function PersonasScreen() {
   const theme = useTheme();
   const { personas, isLoading, add, update, remove } = usePersonas();
   const { medicamentos } = useMedicamentos();
+  
   const [nombre, setNombre] = useState('');
+  const [telefono, setTelefono] = useState('');
   const [relacion, setRelacion] = useState('');
   const [avatarUri, setAvatarUri] = useState<string | undefined>();
   const pendingAvatarUri = useRef<string | undefined>(undefined);
   const [saving, setSaving] = useState(false);
-  const [emergencyContact, setEmergencyContact] = useState<{ name: string; phone?: string } | undefined>();
+  
   const [editingPersona, setEditingPersona] = useState<(typeof personas)[number] | null>(null);
   const [editNombre, setEditNombre] = useState('');
+  const [editTelefono, setEditTelefono] = useState('');
   const [editRelacion, setEditRelacion] = useState('');
   const [editEmergencyContact, setEditEmergencyContact] = useState<{ name: string; phone?: string } | undefined>();
 
-  const handlePickContact = async () => {
+  // Importar contacto para el alta
+  const handleImportContact = async () => {
     try {
       const contact = await contactService.pickContact();
-      if (contact) setEmergencyContact(contact);
+      if (contact) {
+        setNombre(contact.name);
+        setTelefono(contact.phone ?? '');
+      }
     } catch (error) {
       showAlert('No se pudo abrir contactos', error instanceof Error ? error.message : undefined);
+    }
+  };
+
+  // Asignar contacto de emergencia rápido desde la lista
+  const handleQuickEmergencyContact = async (persona: (typeof personas)[number]) => {
+    try {
+      const contact = await contactService.pickContact();
+      if (contact) {
+        await update(persona, persona.nombre, persona.relacion, contact, persona.telefono);
+        showAlert('Contacto asignado', `${contact.name} es el contacto de emergencia de ${persona.nombre}.`);
+      }
+    } catch (error) {
+      showAlert('No se pudo asignar el contacto', error instanceof Error ? error.message : undefined);
     }
   };
 
   const handleEdit = (persona: (typeof personas)[number]) => {
     setEditingPersona(persona);
     setEditNombre(persona.nombre);
+    setEditTelefono(persona.telefono ?? '');
     setEditRelacion(persona.relacion ?? '');
     setEditEmergencyContact(persona.emergencyContact);
   };
@@ -60,7 +81,7 @@ export default function PersonasScreen() {
     }
     setSaving(true);
     try {
-      await update(editingPersona, editNombre, editRelacion, editEmergencyContact);
+      await update(editingPersona, editNombre, editRelacion, editEmergencyContact, editTelefono);
       setEditingPersona(null);
     } catch (error) {
       showAlert('No se pudieron guardar los cambios', error instanceof Error ? error.message : undefined);
@@ -80,12 +101,12 @@ export default function PersonasScreen() {
     }
     setSaving(true);
     try {
-      await add(nombre, relacion, avatarUri, emergencyContact);
+      await add(nombre, telefono, relacion, avatarUri, undefined);
       pendingAvatarUri.current = undefined;
       setNombre('');
+      setTelefono('');
       setRelacion('');
       setAvatarUri(undefined);
-      setEmergencyContact(undefined); // Limpiamos el contacto
     } catch (error) {
       showAlert('No se pudo crear la ficha', error instanceof Error ? error.message : undefined);
     } finally {
@@ -125,11 +146,22 @@ export default function PersonasScreen() {
 
         <Text style={[styles.title, { color: theme.colors.text }]} accessibilityRole="header">Personas</Text>
         <Text style={[styles.subtitle, { color: theme.colors.subtext }]}>
-          Administrá una ficha propia y las personas a quienes acompañás. Cada ficha mantiene sus medicamentos separados.
+          Administrá una ficha propia y las personas a quienes acompañás.
         </Text>
 
         <View style={[styles.form, { backgroundColor: theme.colors.card, borderColor: theme.colors.border }]}>
           <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>Agregar una persona</Text>
+          
+          <TouchableOpacity 
+            style={[styles.importButton, { borderColor: theme.colors.primary }]} 
+            onPress={handleImportContact}
+            disabled={saving}
+            accessibilityRole="button"
+          >
+            <Ionicons name="people-outline" size={20} color={theme.colors.primary} />
+            <Text style={[styles.importButtonText, { color: theme.colors.primary }]}>Importar desde Contactos</Text>
+          </TouchableOpacity>
+
           <TextInput
             style={[styles.input, { color: theme.colors.text, backgroundColor: theme.colors.bg, borderColor: theme.colors.border }]}
             value={nombre}
@@ -141,9 +173,19 @@ export default function PersonasScreen() {
           />
           <TextInput
             style={[styles.input, { color: theme.colors.text, backgroundColor: theme.colors.bg, borderColor: theme.colors.border }]}
+            value={telefono}
+            onChangeText={setTelefono}
+            placeholder="Teléfono (opcional)"
+            placeholderTextColor={theme.colors.subtext}
+            keyboardType="phone-pad"
+            editable={!saving}
+            accessibilityLabel="Teléfono de la persona"
+          />
+          <TextInput
+            style={[styles.input, { color: theme.colors.text, backgroundColor: theme.colors.bg, borderColor: theme.colors.border }]}
             value={relacion}
             onChangeText={setRelacion}
-            placeholder="Vínculo, referencial (opcional)"
+            placeholder="Vínculo (opcional)"
             placeholderTextColor={theme.colors.subtext}
             editable={!saving}
             maxLength={60}
@@ -161,34 +203,6 @@ export default function PersonasScreen() {
             placeholderDescription=""
             disabled={saving}
           />
-
-          {/* CONTACTO DE EMERGENCIA - FLUJO CONDICIONAL */}
-          {emergencyContact ? (
-            <View style={[styles.contactCard, { borderColor: theme.colors.border }]}>
-              <View style={styles.contactInfo}>
-                <Ionicons name="call-outline" size={20} color={theme.colors.primary} />
-                <View>
-                  <Text style={[styles.contactName, { color: theme.colors.text }]}>{emergencyContact.name}</Text>
-                  {emergencyContact.phone && (
-                    <Text style={[styles.contactPhone, { color: theme.colors.subtext }]}>{emergencyContact.phone}</Text>
-                  )}
-                </View>
-              </View>
-              <TouchableOpacity onPress={() => setEmergencyContact(undefined)} accessibilityRole="button" accessibilityLabel="Quitar contacto de emergencia">
-                <Ionicons name="close-circle" size={22} color={theme.colors.danger} />
-              </TouchableOpacity>
-            </View>
-          ) : (
-            <TouchableOpacity 
-              style={[styles.addContactBtn, { borderColor: theme.colors.primary }]} 
-              onPress={handlePickContact}
-              accessibilityRole="button"
-              accessibilityLabel="Agregar contacto de emergencia"
-            >
-              <Ionicons name="add-circle-outline" size={20} color={theme.colors.primary} />
-              <Text style={[styles.addContactText, { color: theme.colors.primary }]}>Agregar contacto de emergencia</Text>
-            </TouchableOpacity>
-          )}
 
           <TouchableOpacity
             style={[styles.addButton, { backgroundColor: theme.colors.primary }]}
@@ -234,6 +248,9 @@ export default function PersonasScreen() {
                 <Text style={[styles.personMeta, { color: theme.colors.subtext }]}>
                   {persona.esPropia ? 'Mi ficha' : persona.relacion || 'Persona a mi cuidado'} · {count} {count === 1 ? 'medicamento' : 'medicamentos'}
                 </Text>
+                {persona.telefono ? (
+                  <Text style={[styles.personMeta, { color: theme.colors.subtext }]}>📞 {persona.telefono}</Text>
+                ) : null}
                 {persona.emergencyContact && (
                   <View style={styles.listContactBadge}>
                     <Ionicons name="call" size={12} color={theme.colors.danger} />
@@ -245,6 +262,14 @@ export default function PersonasScreen() {
               </View>
               {!persona.esPropia ? (
                 <View style={styles.personActions}>
+                  <TouchableOpacity
+                    style={styles.removeButton}
+                    onPress={() => handleQuickEmergencyContact(persona)}
+                    accessibilityRole="button"
+                    accessibilityLabel={`Asignar contacto de emergencia a ${persona.nombre}`}
+                  >
+                    <Ionicons name="call-outline" size={20} color={theme.colors.success} />
+                  </TouchableOpacity>
                   <TouchableOpacity
                     style={styles.removeButton}
                     onPress={() => handleEdit(persona)}
@@ -267,6 +292,7 @@ export default function PersonasScreen() {
           );
         })}
       </ScrollView>
+      
       <Modal
         visible={!!editingPersona}
         transparent
@@ -283,7 +309,15 @@ export default function PersonasScreen() {
               placeholder="Nombre"
               placeholderTextColor={theme.colors.subtext}
               editable={!saving}
-              accessibilityLabel="Nombre de la persona"
+            />
+            <TextInput
+              style={[styles.input, { color: theme.colors.text, backgroundColor: theme.colors.bg, borderColor: theme.colors.border }]}
+              value={editTelefono}
+              onChangeText={setEditTelefono}
+              placeholder="Teléfono"
+              placeholderTextColor={theme.colors.subtext}
+              keyboardType="phone-pad"
+              editable={!saving}
             />
             <TextInput
               style={[styles.input, { color: theme.colors.text, backgroundColor: theme.colors.bg, borderColor: theme.colors.border }]}
@@ -293,7 +327,6 @@ export default function PersonasScreen() {
               placeholderTextColor={theme.colors.subtext}
               editable={!saving}
               maxLength={60}
-              accessibilityLabel="Vínculo con la persona, opcional"
             />
             {editEmergencyContact ? (
               <View style={[styles.contactCard, { borderColor: theme.colors.border }]}>
@@ -305,10 +338,10 @@ export default function PersonasScreen() {
                   </View>
                 </View>
                 <View style={styles.contactActions}>
-                  <TouchableOpacity onPress={handlePickEditContact} disabled={saving} accessibilityRole="button" accessibilityLabel="Cambiar contacto de emergencia">
+                  <TouchableOpacity onPress={handlePickEditContact} disabled={saving}>
                     <Ionicons name="create-outline" size={21} color={theme.colors.primary} />
                   </TouchableOpacity>
-                  <TouchableOpacity onPress={() => setEditEmergencyContact(undefined)} disabled={saving} accessibilityRole="button" accessibilityLabel="Quitar contacto de emergencia">
+                  <TouchableOpacity onPress={() => setEditEmergencyContact(undefined)} disabled={saving}>
                     <Ionicons name="close-circle" size={22} color={theme.colors.danger} />
                   </TouchableOpacity>
                 </View>
@@ -318,8 +351,6 @@ export default function PersonasScreen() {
                 style={[styles.addContactBtn, { borderColor: theme.colors.primary }]}
                 onPress={handlePickEditContact}
                 disabled={saving}
-                accessibilityRole="button"
-                accessibilityLabel="Agregar contacto de emergencia"
               >
                 <Ionicons name="add-circle-outline" size={20} color={theme.colors.primary} />
                 <Text style={[styles.addContactText, { color: theme.colors.primary }]}>Agregar contacto de emergencia</Text>
@@ -359,7 +390,7 @@ const styles = StyleSheet.create({
   personInfo: { flex: 1 },
   personName: { fontSize: 17, fontWeight: '700' },
   personMeta: { fontSize: 14, lineHeight: 19, marginTop: 3 },
-  removeButton: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
+  removeButton: { width: 40, height: 44, alignItems: 'center', justifyContent: 'center' },
   personActions: { flexDirection: 'row', alignItems: 'center' },
   modalBackdrop: { flex: 1, justifyContent: 'center', padding: 20, backgroundColor: 'rgba(0,0,0,0.55)' },
   editModal: { borderRadius: 18, borderWidth: 1, padding: 18, gap: 12 },
@@ -376,4 +407,6 @@ const styles = StyleSheet.create({
   addContactText: { fontSize: 14, fontWeight: '600' },
   listContactBadge: { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 6 },
   listContactText: { fontSize: 12, fontWeight: '500' },
+  importButton: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, padding: 12, borderWidth: 1, borderRadius: 12, borderStyle: 'dashed' },
+  importButtonText: { fontSize: 15, fontWeight: '600' },
 });

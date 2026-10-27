@@ -2,15 +2,18 @@ import {
   ActivityIndicator,
   Alert,
   Image,
+  Modal,
+  Pressable,
   StyleSheet,
   Switch,
   Text,
+  TextInput,
   TouchableOpacity,
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { useNavigation, useRouter } from 'expo-router';
+import { useRouter } from 'expo-router';
 import Constants from 'expo-constants';
 import { useState } from 'react';
 import { useAuth } from '../../src/features/auth/useAuth';
@@ -21,9 +24,12 @@ import { mediaService } from '../../src/services/mediaService';
 
 export default function ProfileScreen() {
   const router = useRouter();
-  const tabsNavigation = useNavigation('/(tabs)') as { navigate: (screen: string) => void };
-  const { user, signOut, updateAvatar } = useAuth();
+  const { user, signOut, updateAvatar, updateName } = useAuth();
   const [avatarBusy, setAvatarBusy] = useState(false);
+  const [avatarOptionsVisible, setAvatarOptionsVisible] = useState(false);
+  const [editNameVisible, setEditNameVisible] = useState(false);
+  const [newName, setNewName] = useState(user?.name ?? '');
+  
   const theme = useTheme();
   const { isDark, toggleTheme } = useAppTheme();
   const appVersion = Constants.expoConfig?.version ?? '0.1.0';
@@ -74,18 +80,14 @@ export default function ProfileScreen() {
     }
   };
 
-  const showAvatarOptions = () => {
-    const options = [
-      { text: 'Tomar una foto', onPress: () => void changeAvatar('camera') },
-      { text: 'Elegir de la galería', onPress: () => void changeAvatar('gallery') },
-    ];
-    if (user?.avatarUri) {
-      options.push({ text: 'Quitar foto', onPress: () => void removeAvatar() });
+  const handleSaveName = async () => {
+    if (!newName.trim()) return;
+    try {
+      await updateName(newName);
+      setEditNameVisible(false);
+    } catch (e) {
+      Alert.alert('Error', 'No se pudo actualizar el nombre.');
     }
-    Alert.alert('Foto de perfil', 'Elegí de dónde querés obtener la imagen.', [
-      ...options.map((option) => ({ ...option, style: 'default' as const })),
-      { text: 'Cancelar', style: 'cancel' },
-    ]);
   };
 
   return (
@@ -100,7 +102,7 @@ export default function ProfileScreen() {
         <View style={[styles.userCard, { backgroundColor: theme.colors.card, borderColor: theme.colors.border }]}>
           <TouchableOpacity
             style={[styles.avatar, { backgroundColor: theme.colors.primary }]}
-            onPress={showAvatarOptions}
+            onPress={() => setAvatarOptionsVisible(true)}
             disabled={avatarBusy}
             activeOpacity={0.8}
             accessibilityRole="button"
@@ -119,14 +121,14 @@ export default function ProfileScreen() {
           </TouchableOpacity>
           <View style={styles.userInfo}>
             <TouchableOpacity
-              onPress={() => tabsNavigation.navigate('home')}
+              onPress={() => { setNewName(user?.name ?? ''); setEditNameVisible(true); }}
               activeOpacity={0.7}
-              accessibilityRole="button"
-              accessibilityLabel="Ir a Medicamentos"
+              style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}
             >
               <Text style={[styles.userName, { color: theme.colors.text }]}>
                 {user?.name ?? 'Usuario'}
               </Text>
+              <Ionicons name="pencil" size={16} color={theme.colors.subtext} />
             </TouchableOpacity>
             <Text style={[styles.userEmail, { color: theme.colors.subtext }]}>
               {user?.email ?? 'Sin correo disponible'}
@@ -213,6 +215,53 @@ export default function ProfileScreen() {
           </Text>
         </TouchableOpacity>
       </View>
+
+      {/* MODAL: Opciones de Avatar */}
+      <Modal visible={avatarOptionsVisible} transparent animationType="slide" onRequestClose={() => setAvatarOptionsVisible(false)}>
+        <Pressable style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' }} onPress={() => setAvatarOptionsVisible(false)}>
+          <Pressable style={{ backgroundColor: theme.colors.card, padding: 20, borderTopLeftRadius: 20, borderTopRightRadius: 20, gap: 10 }} onPress={(e) => e.stopPropagation()}>
+            <Text style={{ fontSize: 18, fontWeight: '700', color: theme.colors.text, marginBottom: 10 }}>Foto de perfil</Text>
+            <TouchableOpacity style={{ paddingVertical: 14 }} onPress={() => { setAvatarOptionsVisible(false); void changeAvatar('camera'); }}>
+              <Text style={{ color: theme.colors.primary, fontSize: 16, fontWeight: '600' }}>📷 Tomar una foto</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={{ paddingVertical: 14 }} onPress={() => { setAvatarOptionsVisible(false); void changeAvatar('gallery'); }}>
+              <Text style={{ color: theme.colors.primary, fontSize: 16, fontWeight: '600' }}>🖼️ Elegir de la galería</Text>
+            </TouchableOpacity>
+            {user?.avatarUri && (
+              <TouchableOpacity style={{ paddingVertical: 14 }} onPress={() => { setAvatarOptionsVisible(false); void removeAvatar(); }}>
+                <Text style={{ color: theme.colors.danger, fontSize: 16, fontWeight: '600' }}>🗑️ Quitar foto</Text>
+              </TouchableOpacity>
+            )}
+            <TouchableOpacity style={{ paddingVertical: 14, alignItems: 'center', marginTop: 4 }} onPress={() => setAvatarOptionsVisible(false)}>
+              <Text style={{ color: theme.colors.subtext, fontSize: 16, fontWeight: '600' }}>Cancelar</Text>
+            </TouchableOpacity>
+          </Pressable>
+        </Pressable>
+      </Modal>
+
+      {/* MODAL: Editar Nombre */}
+      <Modal visible={editNameVisible} transparent animationType="fade" onRequestClose={() => setEditNameVisible(false)}>
+        <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', padding: 20 }}>
+          <View style={{ backgroundColor: theme.colors.card, padding: 20, borderRadius: 16, gap: 12 }}>
+            <Text style={{ fontSize: 18, fontWeight: '700', color: theme.colors.text }}>Editar nombre</Text>
+            <TextInput
+              style={{ backgroundColor: theme.colors.bg, color: theme.colors.text, padding: 12, borderRadius: 10, borderWidth: 1, borderColor: theme.colors.border }}
+              value={newName}
+              onChangeText={setNewName}
+              placeholder="Tu nombre"
+              placeholderTextColor={theme.colors.subtext}
+            />
+            <View style={{ flexDirection: 'row', gap: 10, marginTop: 8 }}>
+              <TouchableOpacity style={{ flex: 1, padding: 12, alignItems: 'center', borderWidth: 1, borderColor: theme.colors.border, borderRadius: 10 }} onPress={() => setEditNameVisible(false)}>
+                <Text style={{ color: theme.colors.text }}>Cancelar</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={{ flex: 1, padding: 12, alignItems: 'center', backgroundColor: theme.colors.primary, borderRadius: 10 }} onPress={handleSaveName}>
+                <Text style={{ color: theme.colors.onPrimary, fontWeight: '700' }}>Guardar</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }

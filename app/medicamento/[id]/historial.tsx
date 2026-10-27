@@ -9,6 +9,7 @@ import { LoadingState } from '../../../src/components/ui/LoadingState';
 import { useMedicamentos } from '../../../src/features/medicamentos/useMedicamentos';
 import { usePersonas } from '../../../src/features/personas/usePersonas';
 import { useTheme } from '../../../src/theme/useTheme';
+import { calcularProximaToma } from '../../../src/features/medicamentos/medicamentoService';
 
 type TomaHistorial = { fecha: number; estado: 'tomado' | 'omitido'; ubicacion?: string };
 type HistorialSection = {
@@ -64,10 +65,12 @@ export default function HistorialMedicamentoScreen() {
   const { personas } = usePersonas();
   const medicamento = medicamentos.find((item) => item.id === id);
   const persona = personas.find((item) => item.id === medicamento?.personaId);
+  
   const historial = useMemo(
     () => [...(medicamento?.historialTomas ?? [])].sort((a, b) => b.fecha - a.fecha),
     [medicamento?.historialTomas]
   );
+  
   const secciones = useMemo<HistorialSection[]>(() => {
     const byLocalDay = new Map<string, TomaHistorial[]>();
     for (const toma of historial) {
@@ -156,11 +159,28 @@ export default function HistorialMedicamentoScreen() {
           showsVerticalScrollIndicator={false}
           stickySectionHeadersEnabled
           ListHeaderComponent={(
-            <View style={[styles.summary, { backgroundColor: theme.colors.card, borderColor: theme.colors.border }]}>
-              <Ionicons name="information-circle-outline" size={20} color={theme.colors.primary} />
-              <Text style={[styles.summaryText, { color: theme.colors.subtext }]}>
-                Se muestran las {historial.length} tomas más recientes registradas.
-              </Text>
+            <View style={{ gap: 12, marginBottom: 8 }}>
+              {/* NUEVO: Próxima toma */}
+              {medicamento && (
+                <View style={[styles.summary, { backgroundColor: theme.colors.card, borderColor: theme.colors.primary, borderWidth: 1.5 }]}>
+                  <Ionicons name="calendar-outline" size={20} color={theme.colors.primary} />
+                  <View style={{ flex: 1 }}>
+                    <Text style={[styles.summaryText, { color: theme.colors.text, fontWeight: '700' }]}>
+                      Próxima toma programada
+                    </Text>
+                    <Text style={[styles.summaryText, { color: theme.colors.subtext }]}>
+                      {new Date(calcularProximaToma(medicamento)).toLocaleString('es-AR', { dateStyle: 'short', timeStyle: 'short' })}
+                    </Text>
+                  </View>
+                </View>
+              )}
+              
+              <View style={[styles.summary, { backgroundColor: theme.colors.card, borderColor: theme.colors.border }]}>
+                <Ionicons name="information-circle-outline" size={20} color={theme.colors.subtext} />
+                <Text style={[styles.summaryText, { color: theme.colors.subtext }]}>
+                  Se muestran las {historial.length} tomas más recientes registradas.
+                </Text>
+              </View>
             </View>
           )}
           renderSectionHeader={({ section }) => (
@@ -214,7 +234,7 @@ const styles = StyleSheet.create({
   title: { fontSize: 23, fontWeight: '800' },
   subtitle: { fontSize: 15, marginTop: 3 },
   list: { paddingHorizontal: 20, paddingBottom: 32 },
-  summary: { flexDirection: 'row', alignItems: 'center', gap: 9, borderWidth: 1, borderRadius: 14, padding: 14, marginBottom: 4 },
+  summary: { flexDirection: 'row', alignItems: 'center', gap: 9, borderWidth: 1, borderRadius: 14, padding: 14 },
   summaryText: { flex: 1, fontSize: 14, lineHeight: 20 },
   dayHeader: { paddingTop: 18, paddingBottom: 8 },
   dayTitle: { fontSize: 18, fontWeight: '800' },

@@ -5,6 +5,7 @@ export interface Persona {
   id: string;
   ownerEmail: string;
   nombre: string;
+  telefono?: string; 
   relacion?: string;
   avatarUri?: string;
   emergencyContact?: { name: string; phone?: string };
@@ -43,12 +44,13 @@ export const personaService = {
     return request;
   },
 
-  async add(ownerEmail: string, nombre: string, relacion?: string, avatarUri?: string, emergencyContact?: { name: string; phone?: string }): Promise<Persona> {
+  async add(ownerEmail: string, nombre: string, telefono?: string, relacion?: string, avatarUri?: string, emergencyContact?: { name: string; phone?: string }): Promise<Persona> {
     const all = await storage.get<Persona[]>(STORAGE_KEYS.PERSONAS, []);
     const persona: Persona = {
       id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
       ownerEmail,
       nombre: nombre.trim(),
+      telefono: telefono?.trim() || undefined,
       relacion: relacion?.trim() || undefined,
       avatarUri,
       emergencyContact,
@@ -59,7 +61,7 @@ export const personaService = {
     return persona;
   },
 
-  async update(ownerEmail: string, id: string, changes: Pick<Persona, 'nombre' | 'relacion' | 'avatarUri' | 'emergencyContact'>): Promise<void> {
+  async update(ownerEmail: string, id: string, changes: Pick<Persona, 'nombre' | 'telefono' | 'relacion' | 'avatarUri' | 'emergencyContact'>): Promise<void> {
     const all = await storage.get<Persona[]>(STORAGE_KEYS.PERSONAS, []);
     await storage.set(
       STORAGE_KEYS.PERSONAS,

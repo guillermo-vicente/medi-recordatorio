@@ -80,12 +80,10 @@ export default function NuevoMedicamentoScreen() {
   const [scanTarget, setScanTarget] = useState<'nombre' | 'observaciones'>('nombre');
 
   const handleOpenScanner = async (target: 'nombre' | 'observaciones' = 'nombre') => {
-    setScanTarget(target); // Configuramos el objetivo del escaneo
-
+    setScanTarget(target);
     const permission = cameraPermission?.granted
       ? cameraPermission
       : await requestCameraPermission();
-
     if (!permission.granted) {
       showAlert('Permiso de cámara', 'Habilitá el acceso a la cámara para escanear un código QR.');
       return;
@@ -96,11 +94,9 @@ export default function NuevoMedicamentoScreen() {
 
   const handleBarcodeScanned = ({ data }: BarcodeScanningResult) => {
     if (barcodeHandled.current) return;
-
     barcodeHandled.current = true;
     setScannerVisible(false);
 
-    // Lógica si estamos escaneando para Observaciones
     if (scanTarget === 'observaciones') {
       setObservaciones((prev) => prev ? `${prev}\n${data.trim()}` : data.trim());
       return;
@@ -111,9 +107,14 @@ export default function NuevoMedicamentoScreen() {
     if (parts.length >= 2) {
       setNombre(parts[0].trim());
       setDosis(parts[1].trim());
+      // Abrimos las notas para que vea el resultado
+      setMostrarDetalles(true); 
     } else {
-      setNombre(data.trim());
-      showAlert('QR Escaneado', 'Se completó el nombre con el texto del QR. Por favor, ingresá la dosis manualmente.');
+      // Si es un QR random, lo mandamos a Observaciones
+      setObservaciones((prev) => prev ? `${prev}\n${data.trim()}` : data.trim());
+       // Abrimos la sección de notas
+      setMostrarDetalles(true);
+      showAlert('QR Escaneado', 'El texto se agregó a las Observaciones.');
     }
   };
 
@@ -246,20 +247,7 @@ export default function NuevoMedicamentoScreen() {
           </Text>
 
           <View style={[styles.formCard, { backgroundColor: theme.colors.card, borderColor: theme.colors.border }]}>
-            <View style={styles.nameFieldHeader}>
-              <Text style={[styles.label, styles.nameLabel, { color: theme.colors.subtext }]}>Nombre</Text>
-              <TouchableOpacity
-                style={[styles.scanButton, { borderColor: theme.colors.primary }]}
-                onPress={() => handleOpenScanner('nombre')}
-                disabled={submitting}
-                accessibilityRole="button"
-                accessibilityLabel="Escanear código QR para completar nombre y dosis"
-              >
-                <Ionicons name="qr-code-outline" size={17} color={theme.colors.primary} />
-                <Text style={[styles.scanButtonText, { color: theme.colors.primary }]}>Escanear QR</Text>
-              </TouchableOpacity>
-            </View>
-
+            <Text style={[styles.label, { color: theme.colors.subtext }]}>Nombre</Text>
             <View style={[styles.inputWrapper, { backgroundColor: theme.colors.bg, borderColor: theme.colors.border }]}>
               <Ionicons name="medical-outline" size={20} color={theme.colors.subtext} style={styles.inputIcon} />
               <TextInput
@@ -342,13 +330,13 @@ export default function NuevoMedicamentoScreen() {
               <>
                 <Text style={[styles.label, { color: theme.colors.subtext }]}>Intervalo indicado</Text>
                 <Text style={[styles.helperText, { color: theme.colors.subtext }]}>Elegí el intervalo que indicó el profesional.</Text>
-                <View style={styles.chipsRow}>
+                <View style={[styles.chipsRow, { flexWrap: 'nowrap', justifyContent: 'space-between' }]}>
                   {FRECUENCIAS.map((f, i) => {
                     const selected = frecuenciaIdx === i;
                     return (
                       <TouchableOpacity
                         key={f.label}
-                        style={[styles.chip, { borderColor: selected ? theme.colors.primary : theme.colors.border, backgroundColor: selected ? theme.colors.primary : 'transparent' }]}
+                        style={[styles.chip, { flex: 1, alignItems: 'center', paddingHorizontal: 0, marginHorizontal: 2, borderColor: selected ? theme.colors.primary : theme.colors.border, backgroundColor: selected ? theme.colors.primary : 'transparent' }]}
                         onPress={() => setFrecuenciaIdx(i)}
                         disabled={submitting}
                         accessibilityRole="radio"
@@ -378,6 +366,7 @@ export default function NuevoMedicamentoScreen() {
               </>
             )}
 
+            {/* SECCIÓN FOTO DE REFERENCIA */}
             <View style={[styles.photoSection, { borderColor: theme.colors.border, backgroundColor: theme.colors.card }]}>
               <View style={styles.photoSectionHeading}>
                 <View style={[styles.photoSectionIcon, { backgroundColor: `${theme.colors.primary}15` }]}>
@@ -398,6 +387,29 @@ export default function NuevoMedicamentoScreen() {
                 aspect={[4, 3]}
                 disabled={submitting}
               />
+            </View>
+
+            {/* SECCIÓN ESCÁNER QR (Movida aquí) */}
+            <View style={[styles.photoSection, { borderColor: theme.colors.border, backgroundColor: theme.colors.card }]}>
+              <View style={styles.photoSectionHeading}>
+                <View style={[styles.photoSectionIcon, { backgroundColor: `${theme.colors.primary}15` }]}>
+                  <Ionicons name="qr-code-outline" size={20} color={theme.colors.primary} />
+                </View>
+                <View style={styles.photoSectionCopy}>
+                  <Text style={[styles.optionalTitle, { color: theme.colors.text }]}>Escanear QR</Text>
+                  <Text style={[styles.helperText, { color: theme.colors.subtext }]}>Opcional · autocompletar datos</Text>
+                </View>
+              </View>
+              <TouchableOpacity
+                style={[styles.scanButton, { borderColor: theme.colors.primary, paddingVertical: 12 }]}
+                onPress={() => handleOpenScanner('nombre')}
+                disabled={submitting}
+                accessibilityRole="button"
+                accessibilityLabel="Escanear código QR para completar nombre y dosis"
+              >
+                <Ionicons name="qr-code-outline" size={17} color={theme.colors.primary} />
+                <Text style={[styles.scanButtonText, { color: theme.colors.primary }]}>Escanear código</Text>
+              </TouchableOpacity>
             </View>
 
             <View style={[styles.optionalSection, { borderColor: theme.colors.border }]}>
@@ -561,33 +573,9 @@ const styles = StyleSheet.create({
   scanButton: { minHeight: 38, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, borderWidth: 1, borderRadius: 10, paddingHorizontal: 10 },
   scanButtonText: { fontSize: 13, fontWeight: '700' },
   scannerContainer: { flex: 1, backgroundColor: '#000' },
-  camera: {
-    flex: 1,
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-  },
-  scanOverlay: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: 'rgba(0,0,0,0.5)',
-  },
-  scanFrame: {
-    width: 260,
-    height: 260,
-    borderWidth: 3,
-    borderColor: '#55C7B3',
-    borderRadius: 24,
-    backgroundColor: 'transparent',
-  },
-
+  camera: { flex: 1, position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 },
+  scanOverlay: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, justifyContent: 'center', alignItems: 'center', backgroundColor: 'rgba(0,0,0,0.5)' },
+  scanFrame: { width: 260, height: 260, borderWidth: 3, borderColor: '#55C7B3', borderRadius: 24, backgroundColor: 'transparent' },
   scannerHeader: { position: 'absolute', top: 56, left: 20, right: 20, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   scannerTitle: { color: '#fff', fontSize: 20, fontWeight: '700' },
   closeScannerButton: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center', borderRadius: 22, backgroundColor: 'rgba(0,0,0,0.55)' },

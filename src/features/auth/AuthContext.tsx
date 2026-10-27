@@ -1,6 +1,3 @@
-// Gestiona la autenticación local de demostración, sin validar cuentas remotas.
-// Las contraseñas se guardan en AsyncStorage y el token de sesión es simulado.
-
 import React, {
     createContext,
     useCallback,
@@ -15,19 +12,15 @@ import { notificationService } from '../notifications/notificationService';
 import { cancelMedicationSchedules, ensureMedicationSchedules } from '../notifications/syncMedicationNotifications';
 import { personaService } from '../personas/personaService';
 
-
 export interface AuthUser {
     email: string;
     name: string;
     avatarUri?: string;
 }
 
-
 interface StoredUser extends AuthUser {
-    /** En este prototipo, AsyncStorage no cifra la contraseña. */
     password: string;
 }
-
 
 export interface AuthContextValue {
     user: AuthUser | null;
@@ -36,17 +29,15 @@ export interface AuthContextValue {
     signIn: (email: string, password: string) => Promise<void>;
     signUp: (name: string, email: string, password: string) => Promise<void>;
     updateAvatar: (avatarUri: string | undefined) => Promise<void>;
+    updateName: (name: string) => Promise<void>;
     signOut: () => Promise<void>;
 }
 
-
 export const AuthContext = createContext<AuthContextValue | undefined>(undefined);
-
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
     const [user, setUser] = useState<AuthUser | null>(null);
     const [isLoading, setIsLoading] = useState(true);
-
 
     useEffect(() => {
         const bootstrap = async () => {
@@ -57,7 +48,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                     null
                 );
                 if (token && storedUser) {
-                    // Crea la ficha propia si todavía no existe.
                     await personaService.list(storedUser.email, storedUser.name).catch((error) => {
                         console.warn('[personas] could not ensure own persona:', error);
                     });
@@ -92,7 +82,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         await tokenStorage.set(`simulated_token_${normalized}`);
         await storage.set(STORAGE_KEYS.CURRENT_USER, authUser);
 
-        // Crea la ficha propia si todavía no existe.
         await personaService.list(authUser.email, authUser.name).catch((error) => {
             console.warn('[personas] could not ensure own persona:', error);
         });
@@ -105,7 +94,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     const updateAvatar = useCallback(async (avatarUri: string | undefined) => {
         if (!user) throw new Error('No hay una sesión activa');
-
         const updatedUser: AuthUser = { ...user, avatarUri };
         const users = await storage.get<StoredUser[]>(STORAGE_KEYS.USERS, []);
         const updatedUsers = users.map((storedUser) =>
@@ -113,12 +101,25 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 ? { ...storedUser, avatarUri }
                 : storedUser
         );
-
         await storage.set(STORAGE_KEYS.USERS, updatedUsers);
         await storage.set(STORAGE_KEYS.CURRENT_USER, updatedUser);
         setUser(updatedUser);
     }, [user]);
 
+    const updateName = useCallback(async (name: string) => {
+        if (!user) throw new Error('No hay una sesión activa');
+        const trimmedName = name.trim();
+        const updatedUser: AuthUser = { ...user, name: trimmedName };
+        const users = await storage.get<StoredUser[]>(STORAGE_KEYS.USERS, []);
+        const updatedUsers = users.map((storedUser) =>
+            storedUser.email === user.email
+                ? { ...storedUser, name: trimmedName }
+                : storedUser
+        );
+        await storage.set(STORAGE_KEYS.USERS, updatedUsers);
+        await storage.set(STORAGE_KEYS.CURRENT_USER, updatedUser);
+        setUser(updatedUser);
+    }, [user]);
 
     const signUp = useCallback(
         async (name: string, email: string, password: string) => {
@@ -133,7 +134,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             await tokenStorage.set(`simulated_token_${normalized}`);
             await storage.set(STORAGE_KEYS.CURRENT_USER, authUser);
 
-            // Crea la ficha propia del usuario.
             await personaService.list(authUser.email, authUser.name).catch((error) => {
                 console.warn('[personas] could not create own persona:', error);
             });
@@ -141,7 +141,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         },
         []
     );
-
 
     const signOut = useCallback(async () => {
         if (user?.email) {
@@ -151,11 +150,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
         await tokenStorage.remove();
         await storage.remove(STORAGE_KEYS.CURRENT_USER);
-        // Cancela las notificaciones pendientes de la sesión que se cierra.
         await notificationService.cancelAll();
         setUser(null);
     }, [user?.email]);
-
 
     const value = useMemo<AuthContextValue>(
         () => ({
@@ -165,9 +162,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             signIn,
             signUp,
             updateAvatar,
+            updateName,
             signOut,
         }),
-        [user, isLoading, signIn, signUp, updateAvatar, signOut]
+        [user, isLoading, signIn, signUp, updateAvatar, updateName, signOut]
     );
 
     return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

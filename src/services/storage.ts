@@ -12,7 +12,13 @@ export const storage = {
 
   async get<T>(key: StorageKey, fallback: T): Promise<T> {
     const raw = await AsyncStorage.getItem(key);
-    return raw ? (JSON.parse(raw) as T) : fallback;
+    if (!raw) return fallback;
+    try {
+      return JSON.parse(raw) as T;
+    } catch (error) {
+      console.warn(`[storage] Error parsing JSON for key ${key}:`, error);
+      return fallback; 
+    }
   },
 
   async remove(key: StorageKey): Promise<void> {

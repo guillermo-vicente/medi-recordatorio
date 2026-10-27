@@ -173,15 +173,12 @@ export default function HomeScreen() {
             '¿Registrar esta toma como realizada?',
         ].filter(Boolean).join('\n');
         if (await showConfirm({ title: item.nombre, message: details, confirmText: 'Marcar tomada', cancelText: 'Cancelar' })) {
+            const currentLocation = await locationService.getCurrentLocation().catch(() => null);
+            
             let ubicacion: string | undefined;
-            try {
-                const currentLocation = await locationService.getCurrentLocation();
-                if (currentLocation) {
-                    ubicacion = currentLocation.address
-                        || `${currentLocation.latitude}, ${currentLocation.longitude}`;
-                }
-            } catch {
-                // La toma se registra aunque el usuario no otorgue permiso de ubicación.
+            if (currentLocation) {
+                ubicacion = currentLocation.address
+                    || `${currentLocation.latitude}, ${currentLocation.longitude}`;
             }
             await markAsTaken(item.id, ubicacion);
         }

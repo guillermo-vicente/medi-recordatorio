@@ -523,6 +523,9 @@ export default function NuevoMedicamentoScreen() {
             barcodeScannerSettings={{ barcodeTypes: ['qr'] }}
             onBarcodeScanned={handleBarcodeScanned}
           />
+          <View style={styles.scanOverlay}>
+            <View style={styles.scanFrame} />
+          </View>
           <View style={styles.scannerHeader}>
             <Text style={styles.scannerTitle}>Escanear código QR</Text>
             <TouchableOpacity
@@ -566,6 +569,25 @@ const styles = StyleSheet.create({
     right: 0,
     bottom: 0,
   },
+  scanOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0,0,0,0.5)',
+  },
+  scanFrame: {
+    width: 260,
+    height: 260,
+    borderWidth: 3,
+    borderColor: '#55C7B3',
+    borderRadius: 24,
+    backgroundColor: 'transparent',
+  },
+
   scannerHeader: { position: 'absolute', top: 56, left: 20, right: 20, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   scannerTitle: { color: '#fff', fontSize: 20, fontWeight: '700' },
   closeScannerButton: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center', borderRadius: 22, backgroundColor: 'rgba(0,0,0,0.55)' },
